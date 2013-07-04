@@ -1,0 +1,1 @@
+gcc  test.cc  -I /home/shawn/soft.compile/ctemplate/include/ -L /home/shawn/soft.compile/ctemplate/lib/ -lctemplate -Wl,-rpath,/home/shawn/soft.compile/ctemplate/lib
