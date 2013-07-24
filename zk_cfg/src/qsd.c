@@ -126,6 +126,18 @@ main(int argc, const char *argv[])
 	    exit(EXIT_FAILURE);
     }
 
+
+    char buffer[512] = "empty";
+    int buflen= sizeof(buffer);
+    struct Stat stat;
+    int rc = 0;
+    rc = zoo_add_auth(zkhandle,"digest","hxf:123",strlen("hxf:123"),0,0);
+    fprintf(stdout, "POS 0:rc=%d\n", rc);
+    rc = zoo_get(zkhandle, "/QueryServer", 0, buffer, &buflen, &stat);
+    printf("========%s\n", buffer);
+    fprintf(stdout, "POS 2:rc=%d\n", rc);
+
+
     QueryServerd_awexists(zkhandle);
     // Wait for asynchronous zookeeper call done.
     getchar();

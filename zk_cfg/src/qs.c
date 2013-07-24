@@ -46,13 +46,64 @@ int main(int argc, const char *argv[])
 
     // struct ACL ALL_ACL[] = {{ZOO_PERM_ALL, ZOO_ANYONE_ID_UNSAFE}};
     // struct ACL_vector ALL_PERMS = {1, ALL_ACL};
+    /*
     int ret = zoo_acreate(zkhandle, "/QueryServer", "alive", 5,
-			  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL,
+    			  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL,
 			  QueryServer_string_completion, "zoo_acreate");
+    */
+
+    //struct Id perm_my = {"digest", "aa:MWQ5NTVjMDY5MDkzYmI4NWIyNGViZjE1ZDMwOWNjZmExY2ZhMzkzNCAgYQo="};
+    //struct Id perm_my = {"digest", "aa:OWQ0ZTFlMjNiZDViNzI3MDQ2YTllM2I0YjdkYjU3YmQ4ZDZlZTY4NA=="};
+    struct Id perm_my = {"digest", "hxf:w1m9wyeJ9cStmkU1oNDka0uisFM="}; // hxf:123
+    struct ACL READ_ONLY_ACL[] = {{ZOO_PERM_READ, perm_my}};
+    struct ACL_vector READ_ONLY = {1, READ_ONLY_ACL};
+
+    int ret = zoo_acreate(zkhandle, "/QueryServer", "alive", 5,
+    			  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL,
+			  QueryServer_string_completion, "zoo_acreate");
+
     if (ret) {
 	    fprintf(stderr, "Error %d for %s\n", ret, "acreate");
 	    exit(EXIT_FAILURE);
     }
+    struct Id perm_my0 = {"digest", "hxf0:JtsEfbVJiiQNmTEToGFnTJ5uSQA="};  // hxf0:1234
+    struct ACL READ_ONLY_ACL0[] = {{ZOO_PERM_READ, perm_my0}};
+    struct ACL_vector READ_ONLY0 = {1, READ_ONLY_ACL0};
+
+    ret = zoo_acreate(zkhandle, "/QueryServer0", "eeivepddd", strlen("eeivepddd"),
+    			  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL,
+			  QueryServer_string_completion, "zoo_acreate 2");
+
+    if (ret) {
+	    fprintf(stderr, "Error %d for %s\n", ret, "acreate");
+	    exit(EXIT_FAILURE);
+    }
+
+
+    char buffer[512] = "empty";
+    int buflen= sizeof(buffer);
+    printf("buflen=%d\n", buflen);
+
+    struct Stat stat;
+    int rc = 0;
+    rc = zoo_add_auth(zkhandle,"digest","hxf:123",strlen("hxf:123"),0,0);
+    fprintf(stdout, "POS 0:rc=%d\n", rc);
+
+    rc = zoo_add_auth(zkhandle,"digest","hxf0:1234",strlen("hxf0:1234"),0,0);
+    fprintf(stdout, "POS 1:rc=%d\n", rc);
+
+    rc = zoo_get(zkhandle, "/QueryServer", 0, buffer, &buflen, &stat);
+    fprintf(stdout, "POS 2:rc=%d\n", rc);
+    printf("=====%s\n", buffer);
+
+    buffer[0] = '\0';
+    buflen= sizeof(buffer);
+    printf("buflen=%d\n", buflen);
+    rc = zoo_get(zkhandle, "/QueryServer0", 0, buffer, &buflen, &stat);
+    fprintf(stdout, "POS 3:rc=%d\n", rc);
+    printf("=====%s\n", buffer);
+
+
 
     do {
 	    // 模拟 QueryServer 对外提供服务.
