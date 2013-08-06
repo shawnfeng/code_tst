@@ -62,37 +62,38 @@ int recpath(zhandle_t *zh, const char *path)
 int main(int argc, char **argv) {
 	int rc;
 
-	if (argc != 3) {
-		printf("ERROR: input error!\n");
-		return 1;
-	}
-
-
 	zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
 
-	//const char *zkhost = "UserZooKeeper1.d.xiaonei.com:2181,UserZooKeeper2.d.xiaonei.com:2181,UserZooKeeper3.d.xiaonei.com:2181,UserZooKeeper4.d.xiaonei.com:2181,UserZooKeeper5.d.xiaonei.com:2181";
-
-	const char *zkhost = argv[1];
-
+	const char *zkhost = "127.0.0.1:4180,127.0.0.1:4181,127.0.0.1:4182";
 
 	zhandle_t *zh = zookeeper_init(zkhost, watcher, 10000, 0, 0, 0);
-
-	const clientid_t *cid = zoo_client_id(zh);
-	printf("==========id=%ld, pass=%s\n==========", cid->client_id, cid->passwd);
 
 	if (!zh) {
 		printf("ERROR: zk init error!\n");
 		return 1;
 	}
 
+	char path_buffer[1024];
+	int path_buffer_len = sizeof(path_buffer);
+	const char *path = "/ephemeral_node";
+	rc = zoo_create(zh, path, NULL, -1,
+			&ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL,
+			path_buffer, path_buffer_len);
 
-	const char *path = NULL;
+	printf("create path=%s\n", path_buffer);
 
-	path = argv[2];
-	if (recpath(zh, path)) {
-		printf("ERROR: zk rec path=%s!\n", path);
+	const clientid_t *cid = zoo_client_id(zh);
+	printf("==========id=%ld, pass=%s\n==========", cid->client_id, cid->passwd);
+
+
+	if (rc != ZOK) {
+		printf("ERROR: zk create children error %d!\n", rc);
+		return 1;
 	}
 
+
+
+	sleep(20);
 
 	zookeeper_close(zh);
 	return 0;
