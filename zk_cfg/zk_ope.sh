@@ -14,6 +14,8 @@ dir_servs="$dir_serv0 $dir_serv1 $dir_serv2"
 bindex=0
 bclient_port=4180
 
+bind_ip=0.0.0.0
+
 echo_cfg()
 {
     dir_serv=$1
@@ -24,9 +26,9 @@ echo_cfg()
     echo "dataDir=$dir_serv/data"
     echo "dataLogDir=$dir_serv/log"
     echo "clientPort=$client_port"
-    echo "server.0=127.0.0.1:8880:7770"
-    echo "server.1=127.0.0.1:8881:7771"
-    echo "server.2=127.0.0.1:8882:7772"
+    echo "server.0=$bind_ip:8880:7770"
+    echo "server.1=$bind_ip:8881:7771"
+    echo "server.2=$bind_ip:8882:7772"
 
 }
 

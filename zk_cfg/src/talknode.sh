@@ -14,7 +14,7 @@ zkhost_online="UserZooKeeper1.d.xiaonei.com:2181,UserZooKeeper2.d.xiaonei.com:21
 
 zkhost_press="10.22.202.84:2181"
 
-zkhost=$zkhost_press
+zkhost=$zkhost_online
 
 pr_node $zkhost $p_talkserver
 pr_node $zkhost $p_endpoint
