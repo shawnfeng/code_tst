@@ -44,9 +44,9 @@ int main (void)
 	ev_timer_init (&timeout_watcher, timeout_cb, 5.5, 0.);
 	ev_timer_start (loop, &timeout_watcher);
 
-	// now wait for events to arrive
+	printf("now wait for events to arrive\n");
 	ev_run (loop, 0);
 
-	// break was called, so exit
+	printf("break was called, so exit\n");
 	return 0;
 }
