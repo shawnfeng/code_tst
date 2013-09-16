@@ -10,7 +10,8 @@ CCFLAGS=-c -Wall -g -fPIC -I$(EVPATH)/include -I$(HIREDIS_PATH)
 RPATH_EV=$(EVPATH)/lib
 RPATH_HIREDIS=$(HIREDIS_PATH)
 
-all: 1st example-libev demo
+all: test_client
+demo: 1st example-libev demo
 
 1st: 1st.o
 	$(CC) -o 1st -Wl,-rpath $(RPATH_EV) 1st.o -L$(RPATH_EV) -lev
@@ -32,8 +33,19 @@ example-libev.o: example-libev.cc
 demo.o: demo.cc demo.h
 	$(CC) $(CCFLAGS) demo.cc
 
+# src client
+test_client: RedisClient.o test_client.o
+	$(CC) -o test_client -Wl,-rpath,$(RPATH_EV) -Wl,-rpath,$(RPATH_HIREDIS) test_client.o RedisClient.o -L$(RPATH_HIREDIS) -L$(RPATH_EV) -lev -lhiredis -lboost_thread
+
+test_client.o: test_client.cpp RedisClient.h
+	$(CC) $(CCFLAGS) test_client.cpp
+
+RedisClient.o: RedisClient.cpp RedisClient.h
+	$(CC) $(CCFLAGS) RedisClient.cpp
+
+
 .PHONY: clean cleanall
 clean:
 	rm -f *.o
 cleanall:
-	rm -f *.o 1st example-libev demo
+	rm -f *.o 1st example-libev demo test_client
