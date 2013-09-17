@@ -82,7 +82,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 }
 
 
-void RedisClient::run()
+void RedisEvent::run()
 {
 	struct ev_loop *loop = loop_;
 
@@ -92,7 +92,7 @@ void RedisClient::run()
 
 }
 
-void RedisClient::start()
+void RedisEvent::start()
 {
 	loop_ = EV_DEFAULT;
 
@@ -105,21 +105,21 @@ void RedisClient::start()
 
 	log_.info("then create the thread running ev_run");
 
-	boost::thread td(boost::bind(&RedisClient::run, this));
+	boost::thread td(boost::bind(&RedisEvent::run, this));
 	td.detach();
 
 }
 
-void RedisClient::attach(redisAsyncContext *c)
+void RedisEvent::attach(redisAsyncContext *c)
 {
 	redisLibevAttach(loop_, c);
 }
 
 
-void RedisClient::cmd(std::vector<redisAsyncContext *>rcs, const char *c, int timeout)
+void RedisEvent::cmd(std::vector<redisAsyncContext *>rcs, const char *c, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
-	const char *fun = "RedisClient::cmd";
+	const char *fun = "RedisEvent::cmd";
 	log_.debug("%s-->size:%lu cmd:%s", fun, rcs.size(), c);
 	if (rcs.empty()) {
 		log_.warn("%s-->empty redis context cmd:%s", fun, c);
@@ -176,5 +176,29 @@ void RedisClient::cmd(std::vector<redisAsyncContext *>rcs, const char *c, int ti
 		log_.debug("=== %s ===", it->c_str());
 	}
 
+
+}
+
+
+// ======================================
+static void connectCallback(const redisAsyncContext *c, int status) {
+    if (status != REDIS_OK) {
+        printf("Error: %s\n", c->errstr);
+        return;
+    }
+    printf("Connected...\n");
+}
+
+static void disconnectCallback(const redisAsyncContext *c, int status) {
+    if (status != REDIS_OK) {
+        printf("Error: %s\n", c->errstr);
+        return;
+    }
+    printf("Disconnected...\n");
+}
+
+
+void RedisContext::update_ends(vector<string> &ends)
+{
 
 }

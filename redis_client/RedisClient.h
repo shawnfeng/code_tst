@@ -1,13 +1,15 @@
-#ifndef __DEMO_H_H__
-#define __DEMO_H_H__
+#ifndef __REDIS_CLIENT_H_H__
+#define __REDIS_CLIENT_H_H__
 #include <vector>
+#include <map>
+#include <string>
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
 
 #include <adapters/libev.h>
-class RedisClient;
+class RedisEvent;
 
 class LogOut {
 	void (*log_t_)(const char *);
@@ -66,17 +68,17 @@ class userdata_t {
 	enum { CUR_CALL_NUM = 100000, };
 	size_t idx_;
 	cflag_t cfg_[CUR_CALL_NUM];
-	RedisClient *rc_;
+	RedisEvent *rc_;
 
  private:
 
 
 public:
- userdata_t(RedisClient *rc) : rc_(rc)
+ userdata_t(RedisEvent *rc) : rc_(rc)
 		{
 		}
 
-	RedisClient *rc() { return rc_; }
+	RedisEvent *rc() { return rc_; }
 
 	cflag_t *get_cf()
 	{ 
@@ -90,7 +92,7 @@ public:
 
 
 
-class RedisClient {
+class RedisEvent {
  private:
 	struct ev_loop *loop_;
 
@@ -105,7 +107,7 @@ class RedisClient {
 	void run();
 
  public:
-	RedisClient(void (*log_t)(const char *),
+	RedisEvent(void (*log_t)(const char *),
 		    void (*log_d)(const char *),
 		    void (*log_i)(const char *),
 		    void (*log_w)(const char *),
@@ -121,6 +123,27 @@ class RedisClient {
 	void attach(redisAsyncContext *c);
 	void cmd(std::vector<redisAsyncContext *>rcs, const char *c, int timeout);
 
+
+};
+
+
+class RedisContext {
+	struct rds_c_t {
+		enum { NONE, SYN, ESTABLISHED, CLOSED, };
+		int st;
+		redisAsyncContext *c;
+
+	rds_c_t() : st(NONE), c(NULL) {}
+	};
+
+	RedisEvent *rc_;
+
+	boost::mutex mutex_;
+	std::map<std::string, rds_c_t> contexts_;
+
+ public:
+ RedisContext(RedisEvent *rc) : rc_(rc) {}
+	void update_ends(std::vector<std::string> &ends);
 
 };
 

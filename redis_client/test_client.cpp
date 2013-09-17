@@ -57,27 +57,42 @@ static void disconnectCallback(const redisAsyncContext *c, int status)
 int main (int argc, char **argv)
 {
 
-	g_log.info("MAIN-->RedisClient init");
-	RedisClient rc(log_trace, log_debug, log_info, log_warn, log_error);
+	g_log.info("MAIN-->RedisEvent init");
+	RedisEvent rc(log_trace, log_debug, log_info, log_warn, log_error);
 
 	rc.start();
-	g_log.info("MAIN-->RedisClient start");
+	g_log.info("MAIN-->RedisEvent start");
 
-	redisAsyncContext *c1 = redisAsyncConnect("127.0.0.1", 10010);
-	redisAsyncContext *c = redisAsyncConnect("127.0.0.1", 10020);
-	if (!(c1 && c)) {
-		g_log.error("context error");
+	redisAsyncContext *c = redisAsyncConnect("127.0.0.1", 10010);
+	redisAsyncContext *c1 = redisAsyncConnect("127.0.0.1", 10020);
+	redisAsyncContext *c2 = redisAsyncConnect("10.2.72.23", 10010);
+
+	if (c->err) {
+		g_log.error("Error: %s", c->errstr);
 		return 1;
 	}
+
+
+	if (c1->err) {
+		g_log.error("Error1: %s", c->errstr);
+		return 1;
+	}
+
+	if (c2->err) {
+		g_log.error("Error1: %s", c->errstr);
+		return 1;
+	}
+
 
 	redisAsyncSetConnectCallback(c, connectCallback);
 	redisAsyncSetDisconnectCallback(c, disconnectCallback);
 
 	g_log.info("sleep ZZZ");
-	sleep(5);
+
+
 	rc.attach(c1);
 	rc.attach(c);
-
+	sleep(3);
 	vector<redisAsyncContext *> rcs;
 	rcs.push_back(c);
 	rcs.push_back(c1);
