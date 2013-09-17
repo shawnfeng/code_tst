@@ -44,20 +44,25 @@ int main (int argc, char **argv)
 	rc.start();
 	g_log.info("MAIN-->RedisClient start");
 	g_log.info("sleep ZZZ");
-	sleep(3);
+	//sleep(1);
 
 	vector< pair<string, int> >ip_port;
 	rc.update_ends(ip_port);
 
+	//sleep(1);
+	//g_log.info("MAIN-->call disconnect");
+	//redisAsyncDisconnect(rc.test());
+
 
 	//	sleep(1000);
 
-	for (int i = 0; i < 1; ++i) {
+	sleep(10);
+	for (int i = 0; i < 100; ++i) {
 		g_log.info("%d sleep ZZZZZZ", i);
-		sleep(6);
+		sleep(1);
 
 		vector<string> hash;
-		rc.cmd(hash, "GET key0", 10);
+		rc.cmd(hash, "GET key0", 100);
 	}
 
 

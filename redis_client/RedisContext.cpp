@@ -39,6 +39,12 @@ void RedisContext::update_ends(std::vector< std::pair<std::string, int> > &ends)
 	redisAsyncContext *c0 = redisAsyncConnect("127.0.0.1", 10010);
 	redisAsyncContext *c1 = redisAsyncConnect("127.0.0.1", 10020);
 	redisAsyncContext *c2 = redisAsyncConnect("10.2.72.23", 10010);
+	//redisAsyncContext *c2 = redisAsyncConnect("127.0.0.1", 10030);
+
+	c0->ev.data = NULL;
+	c1->ev.data = NULL;
+	c2->ev.data = NULL;
+		
 
 	log_->info("c0: %p", c0);
 	log_->info("c1: %p", c1);
@@ -58,6 +64,7 @@ void RedisContext::update_ends(std::vector< std::pair<std::string, int> > &ends)
 		log_->error("Error2: %s", c2->errstr);
 		return;
 	}
+	//test = c1;
 
 	rds_c_t r0, r1, r2;
 	r0.c = c0; r0.st = rds_c_t::SYN;

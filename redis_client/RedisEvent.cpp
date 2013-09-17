@@ -159,7 +159,12 @@ void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int tim
 
 	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
 	     it != rcxs.end(); ++it) {
-		redisAsyncCommand(*it, redis_cmd_cb, cf, c);
+		if ((*it)->ev.data != NULL) {
+			log_->trace("%s-->redisAsyncCommand c:%p e:%p", fun, *it, (*it)->ev.data);
+			redisAsyncCommand(*it, redis_cmd_cb, cf, c);
+		} else {
+			log_->warn("%s-->context not attach c:%p", fun, *it);
+		}
 	}
 
 	ev_async_send (loop_, &async_w_);

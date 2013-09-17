@@ -39,6 +39,9 @@ class RedisContext {
 	LogOut *log() { return log_; }
 
 
+	//redisAsyncContext *test;
+
+
 };
 
 #endif
