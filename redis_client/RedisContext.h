@@ -33,9 +33,9 @@ class RedisContext {
 		log->info("%s-->loop:%p", "RedisContext::RedisContext", loop_);
 	}
 	void update_ends(std::vector< std::pair<std::string, int> > &ends);
-	void attach(redisAsyncContext *c);
+	//void attach(redisAsyncContext *c);
 
-	void hash_rcx(const std::vector<std::string> &hash, std::vector<redisAsyncContext *> &rcxs);
+	void hash_rcx(const std::vector<std::string> &hash, std::set<redisAsyncContext *> &rcxs);
 	LogOut *log() { return log_; }
 
 

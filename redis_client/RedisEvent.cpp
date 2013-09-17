@@ -120,6 +120,8 @@ void RedisEvent::attach(redisAsyncContext *c, redisConnectCallback *oncall, redi
 	log_->info("%s-->attach c:%p", c);
 	if (!c) return;
 
+	redisLibevAttach(loop_, c, (void *)this);
+
 	boost::mutex::scoped_lock lock(mutex_);
 	log_->info("%s-->conn cb %p", fun, c);
 	redisAsyncSetConnectCallback(c, oncall);
@@ -128,7 +130,7 @@ void RedisEvent::attach(redisAsyncContext *c, redisConnectCallback *oncall, redi
 	ev_async_send (loop_, &async_w_);
 }
 
-void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int timeout)
+void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
@@ -155,7 +157,7 @@ void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int 
 	cf->set_f((int)rcxs.size());
 	cf->set_d((void *)&carg);
 
-	for (vector<redisAsyncContext *>::const_iterator it = rcxs.begin();
+	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
 	     it != rcxs.end(); ++it) {
 		redisAsyncCommand(*it, redis_cmd_cb, cf, c);
 	}

@@ -1,6 +1,7 @@
 #ifndef __REDIS_EVENT_H_H__
 #define __REDIS_EVENT_H_H__
 #include <vector>
+#include <set>
 
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -84,7 +85,7 @@ class RedisEvent {
 	void start ();
 	LogOut *log() { return log_; }
 
-	void cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int timeout);
+	void cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int timeout);
 	struct ev_loop *loop() { return loop_; }
 
 };

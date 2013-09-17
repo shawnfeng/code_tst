@@ -4,7 +4,7 @@ using namespace std;
 
 void RedisClient::cmd(const std::vector<std::string> &hash, const char *c, int timeout)
 {
-	vector<redisAsyncContext *> rcxs;
+	set<redisAsyncContext *> rcxs;
 	rcx_.hash_rcx(hash, rcxs);
 	re_.cmd(rcxs, c, timeout);
 }

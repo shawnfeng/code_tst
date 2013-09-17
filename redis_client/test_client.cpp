@@ -49,11 +49,18 @@ int main (int argc, char **argv)
 	vector< pair<string, int> >ip_port;
 	rc.update_ends(ip_port);
 
-	g_log.info("sleep ZZZZZZ");
-	sleep(6);
 
-	vector<string> hash;
-	rc.cmd(hash, "GET key0", 10);
+	//	sleep(1000);
+
+	for (int i = 0; i < 1; ++i) {
+		g_log.info("%d sleep ZZZZZZ", i);
+		sleep(6);
+
+		vector<string> hash;
+		rc.cmd(hash, "GET key0", 10);
+	}
+
+
 
 	g_log.info("MAIN-->hold here");
 	pause();
