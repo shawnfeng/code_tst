@@ -34,14 +34,22 @@ demo.o: demo.cc demo.h
 	$(CC) $(CCFLAGS) demo.cc
 
 # src client
-test_client: RedisClient.o test_client.o
-	$(CC) -o test_client -Wl,-rpath,$(RPATH_EV) -Wl,-rpath,$(RPATH_HIREDIS) test_client.o RedisClient.o -L$(RPATH_HIREDIS) -L$(RPATH_EV) -lev -lhiredis -lboost_thread
+test_client: RedisClient.o test_client.o RedisContext.o RedisEvent.o
+	$(CC) -o test_client -Wl,-rpath,$(RPATH_EV) -Wl,-rpath,$(RPATH_HIREDIS) test_client.o RedisClient.o RedisContext.o RedisEvent.o -L$(RPATH_HIREDIS) -L$(RPATH_EV) -lev -lhiredis -lboost_thread
 
-test_client.o: test_client.cpp RedisClient.h
+test_client.o: test_client.cpp RedisClient.h RedisEvent.h RedisContext.h
 	$(CC) $(CCFLAGS) test_client.cpp
 
 RedisClient.o: RedisClient.cpp RedisClient.h
 	$(CC) $(CCFLAGS) RedisClient.cpp
+
+RedisEvent.o: RedisEvent.cpp RedisEvent.h
+	$(CC) $(CCFLAGS) RedisEvent.cpp
+
+
+RedisContext.o: RedisContext.cpp RedisContext.h
+	$(CC) $(CCFLAGS) RedisContext.cpp
+
 
 
 .PHONY: clean cleanall
