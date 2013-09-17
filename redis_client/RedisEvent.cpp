@@ -114,6 +114,19 @@ void RedisEvent::start()
 
 }
 
+void RedisEvent::attach(redisAsyncContext *c, redisConnectCallback *oncall, redisDisconnectCallback *discall)
+{
+	const char *fun = "RedisEvent::attach";
+	log_->info("%s-->attach c:%p", c);
+	if (!c) return;
+
+	boost::mutex::scoped_lock lock(mutex_);
+	log_->info("%s-->conn cb %p", fun, c);
+	redisAsyncSetConnectCallback(c, oncall);
+	redisAsyncSetDisconnectCallback(c, discall);
+
+	ev_async_send (loop_, &async_w_);
+}
 
 void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int timeout)
 {
@@ -131,6 +144,7 @@ void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int 
 	cflag_t *cf = NULL;
 
 
+	// ==========lock==========
 	log_->trace("%s-->loop lock", fun);
 	mutex_.lock();
 
@@ -154,7 +168,7 @@ void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int 
 		boost::mutex::scoped_lock lock(carg.mux);  // must can get lock!
 	log_->trace("%s-->loop unlock", fun);
 	mutex_.unlock(); // card.mux had beed locked, then release mutex_
-
+	// ==========unlock==========
 	        log_->trace("%s-->condition wait %d", fun, timeout);
 		is_timeout = !carg.cond.timed_wait(lock, boost::posix_time::milliseconds(timeout));
 	}

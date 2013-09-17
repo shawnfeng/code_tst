@@ -15,7 +15,7 @@ class RedisClient {
 		    void (*log_w)(const char *),
 		    void (*log_e)(const char *)
 		    ) : log_(log_t, log_d, log_i, log_w, log_e),
-		re_(&log_), rcx_(&log_)
+		re_(&log_), rcx_(&log_, &re_)
 		{}
 
 	void start() { re_.start(); }

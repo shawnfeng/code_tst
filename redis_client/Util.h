@@ -23,6 +23,9 @@ class LogOut {
 	}
 
  public:
+	// WARNING: the trace set is just use for trace the routine
+	// process, which will cause low performance!
+	// so NULL will be setted log_e for online environment
 	LogOut(
 	       void (*log_t)(const char *),
 	       void (*log_d)(const char *),

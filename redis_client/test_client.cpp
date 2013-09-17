@@ -41,15 +41,16 @@ int main (int argc, char **argv)
 	g_log.info("MAIN-->RediClient init");
 	RedisClient rc(log_trace, log_debug, log_info, log_warn, log_error);
 
+	rc.start();
+	g_log.info("MAIN-->RedisClient start");
+	g_log.info("sleep ZZZ");
+	sleep(3);
+
 	vector< pair<string, int> >ip_port;
 	rc.update_ends(ip_port);
 
-
-	rc.start();
-	g_log.info("MAIN-->RedisClient start");
-
-	g_log.info("sleep ZZZ");
-	sleep(3);
+	g_log.info("sleep ZZZZZZ");
+	sleep(6);
 
 	vector<string> hash;
 	rc.cmd(hash, "GET key0", 10);

@@ -62,24 +62,11 @@ void RedisContext::update_ends(std::vector< std::pair<std::string, int> > &ends)
 	attach(c1);
 	attach(c2);
 
-
 	rds_c_t r0, r1, r2;
 	r0.c = c0; r0.st = rds_c_t::SYN;
 	r1.c = c1; r1.st = rds_c_t::SYN;
 	r2.c = c2; r2.st = rds_c_t::SYN;
 	
-
-	log_->info("%s-->conn cb %p", fun, c0);
-	redisAsyncSetConnectCallback(c0, connectCallback);
-	redisAsyncSetDisconnectCallback(c0, disconnectCallback);
-
-	log_->info("%s-->conn cb %p", fun, c1);
-	redisAsyncSetConnectCallback(c1, connectCallback);
-	redisAsyncSetDisconnectCallback(c1, disconnectCallback);
-
-	log_->info("%s-->conn cb %p", fun, c2);
-	redisAsyncSetConnectCallback(c2, connectCallback);
-	redisAsyncSetDisconnectCallback(c2, disconnectCallback);
 
 
 	char buff[200];
@@ -96,6 +83,9 @@ void RedisContext::update_ends(std::vector< std::pair<std::string, int> > &ends)
 
 
 
+	re_->attach(c0, connectCallback, disconnectCallback);
+	re_->attach(c1, connectCallback, disconnectCallback);
+	re_->attach(c2, connectCallback, disconnectCallback);
 
 }
 
