@@ -9,10 +9,6 @@ struct cmd_arg_t {
 	boost::condition_variable cond;
 
 	vector<string> vs;
-
-	LogOut *log;
-
-	cmd_arg_t(LogOut *lg) : log(lg) {}
 };
 
 
@@ -27,30 +23,38 @@ static void async_cb (EV_P_ ev_async *w, int revents)
 static void l_release (EV_P)
 {
 	userdata_t *u = (userdata_t *)ev_userdata (EV_A);
-	u->rc()->unlock();
+	u->re()->unlock();
 }
 
 static void l_acquire (EV_P)
 {
 	userdata_t *u = (userdata_t *)ev_userdata (EV_A);
-	u->rc()->lock();
+	u->re()->lock();
 }
 
 
 static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 {
+	// this point must alloc
 	cflag_t *cf = (cflag_t *)data;
-	cmd_arg_t *carg = (cmd_arg_t *)cf->d();
-
-	LogOut *log = carg->log;
+	assert(cf);
+	userdata_t *u = (userdata_t *)ev_userdata(EV_DEFAULT);
+	assert(u);
+	assert(u->re());
+	LogOut *log = u->re()->log();
+	assert(log);
 
 	if (log) log->trace("redis_cmd_cb-->cf=%p cf->f=%d cf->d=%p", cf, cf->f(), cf->d());
 
-	if (cf->f() == 0) {
+	if (cf->f() == 0 || cf->d() == NULL) {
 		if (log) log->trace("redis_cmd_cb-->cf->f=%d return", cf->f());
 		return;
 	}
 
+
+	// check ok, can use cf->d() pointer
+	cmd_arg_t *carg = (cmd_arg_t *)cf->d();
+	assert(carg);
 	vector<string> &vs = carg->vs;
 
 
@@ -94,56 +98,51 @@ void RedisEvent::run()
 
 void RedisEvent::start()
 {
-	loop_ = EV_DEFAULT;
-
+	log_->info("RedisEvent::start-->loop:%p", loop_);
 	ev_async_init (&async_w_, async_cb);
 	ev_async_start (loop_, &async_w_);
 
-	log_.info("now associate this with the loop");
+	//log_->info("now associate this with the loop");
 	ev_set_userdata (loop_, &ud_);
 	ev_set_loop_release_cb (loop_, l_release, l_acquire);
 
-	log_.info("then create the thread running ev_run");
+	//log_->info("then create the thread running ev_run");
 
 	boost::thread td(boost::bind(&RedisEvent::run, this));
 	td.detach();
+	log_->info("RedisEvent::start-->ok loop:%p", loop_);
 
 }
 
-void RedisEvent::attach(redisAsyncContext *c)
-{
-	redisLibevAttach(loop_, c);
-}
 
-
-void RedisEvent::cmd(std::vector<redisAsyncContext *>rcs, const char *c, int timeout)
+void RedisEvent::cmd(std::vector<redisAsyncContext *> &rcxs, const char *c, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
-	log_.debug("%s-->size:%lu cmd:%s", fun, rcs.size(), c);
-	if (rcs.empty()) {
-		log_.warn("%s-->empty redis context cmd:%s", fun, c);
+	log_->debug("%s-->size:%lu cmd:%s", fun, rcxs.size(), c);
+	if (rcxs.empty()) {
+		log_->warn("%s-->empty redis context cmd:%s", fun, c);
 		return;
 	}
 
 	userdata_t *u = &ud_;
 
-	cmd_arg_t carg(&log_);
+	cmd_arg_t carg;
 	cflag_t *cf = NULL;
 
 
-	log_.trace("%s-->loop lock", fun);
+	log_->trace("%s-->loop lock", fun);
 	mutex_.lock();
 
 	cf = u->get_cf();
 	if (cf->f() || cf->d()) {
-		log_.error("%s-->userdata have data!", fun);
+		log_->error("%s-->userdata have data!", fun);
 	}
-	cf->set_f((int)rcs.size());
+	cf->set_f((int)rcxs.size());
 	cf->set_d((void *)&carg);
 
-	for (vector<redisAsyncContext *>::const_iterator it = rcs.begin();
-	     it != rcs.end(); ++it) {
+	for (vector<redisAsyncContext *>::const_iterator it = rcxs.begin();
+	     it != rcxs.end(); ++it) {
 		redisAsyncCommand(*it, redis_cmd_cb, cf, c);
 	}
 
@@ -153,27 +152,27 @@ void RedisEvent::cmd(std::vector<redisAsyncContext *>rcs, const char *c, int tim
 	{
 		// waiting
 		boost::mutex::scoped_lock lock(carg.mux);  // must can get lock!
-	log_.trace("%s-->loop unlock", fun);
+	log_->trace("%s-->loop unlock", fun);
 	mutex_.unlock(); // card.mux had beed locked, then release mutex_
 
-	        log_.trace("%s-->condition wait %d", fun, timeout);
+	        log_->trace("%s-->condition wait %d", fun, timeout);
 		is_timeout = !carg.cond.timed_wait(lock, boost::posix_time::milliseconds(timeout));
 	}
 
-	log_.trace("%s-->condition pass istimeout=%d", fun, is_timeout);
+	log_->trace("%s-->condition pass istimeout=%d", fun, is_timeout);
 	if (is_timeout) {
 		boost::mutex::scoped_lock lock(mutex_);
-		//log_.trace("%s-->cf=%p cf->f=%d cf->d=%p", fun, cf, cf->f(), cf->d());
+		log_->trace("%s-->cf=%p cf->f=%d cf->d=%p", fun, cf, cf->f(), cf->d());
 		cf->reset();
 	}
 	// log out free lock
 	if (is_timeout) {
-		log_.warn("%s-->timeout c:%s", fun, c);
+		log_->warn("%s-->timeout c:%s", fun, c);
 	}
 
 	const vector<string> &vs = carg.vs;
 	for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
-		log_.debug("=== %s ===", it->c_str());
+		log_->debug("=== %s ===", it->c_str());
 	}
 
 
