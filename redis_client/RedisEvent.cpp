@@ -218,7 +218,7 @@ void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout)
 				redisAsyncCommand(c, redis_cmd_cb, cf, cs);
 				wsz++;
 			} else {
-				log_->warn("%s-->connection is not ready c:%p", fun, *it);
+				log_->warn("%s-->connection is not ready c:%p", fun, c);
 			}
 
 		}
