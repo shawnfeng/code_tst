@@ -26,8 +26,6 @@ class RedisClient {
 	void cmd(const std::vector<std::string> &hash, const char *c, int timeout);
 	void cmd(const std::vector<long> &hash, const char *c, int timeout);
 
-       	//redisAsyncContext *test() { return rcx_.test; }
-
 };
 
 #endif

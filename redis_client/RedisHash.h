@@ -15,13 +15,12 @@
 class RedisHash {
 	LogOut *log_;
 	RedisEvent *re_;
-	//	boost::shared_mutex smux_;
-	///	std::map<std::string, redisAsyncContext *> ctxs_;
+	boost::shared_mutex smux_;
+	std::set<uint64_t> addrs_;
 
  public:
 
  RedisHash(LogOut *log, RedisEvent *re) : log_(log), re_(re) {
-		//		log->info("%s-->loop:%p", "RedisHash::RedisHash", loop_);
 	}
 	void update_ends(const std::vector< std::pair<std::string, int> > &ends);
 
