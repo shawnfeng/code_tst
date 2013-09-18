@@ -22,6 +22,8 @@ void RedisHash::hash_addr(const std::vector<std::string> &hash, std::set<uint64_
 {
 	const char *fun = "RedisHash::hash_addr";
 
+
+	boost::shared_lock< boost::shared_mutex > lock(smux_);
 	// just test give all
 	addrs = addrs_;
 
