@@ -7,7 +7,7 @@
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include <adapters/libev.h>
+#include "libev.h"
 
 #include "Util.h"
 

@@ -25,7 +25,7 @@ class RedisHash {
 	}
 	void update_ends(const std::vector< std::pair<std::string, int> > &ends);
 
-	void hash_rcx(const std::vector<std::string> &hash, std::set<uint64_t> &addrs);
+	void hash_addr(const std::vector<std::string> &hash, std::set<uint64_t> &addrs);
 	LogOut *log() { return log_; }
 
 

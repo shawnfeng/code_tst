@@ -34,24 +34,27 @@ demo.o: demo.cc demo.h
 	$(CC) $(CCFLAGS) demo.cc
 
 # src client
-test_client: RedisClient.o test_client.o RedisHash.o RedisEvent.o Util.o
-	$(CC) -o test_client -Wl,-rpath,$(RPATH_EV) -Wl,-rpath,$(RPATH_HIREDIS) test_client.o RedisClient.o RedisHash.o RedisEvent.o Util.o -L$(RPATH_HIREDIS) -L$(RPATH_EV) -lev -lhiredis -lboost_thread
+test_client: RedisClient.o test_client.o RedisHash.o RedisEvent.o Util.o libev.o
+	$(CC) -o test_client -Wl,-rpath,$(RPATH_EV) -Wl,-rpath,$(RPATH_HIREDIS) test_client.o RedisClient.o RedisHash.o RedisEvent.o Util.o libev.o -L$(RPATH_HIREDIS) -L$(RPATH_EV) -lev -lhiredis -lboost_thread
 
-test_client.o: test_client.cpp RedisClient.h RedisEvent.h RedisHash.h Util.h
+test_client.o: test_client.cpp RedisClient.h RedisEvent.h RedisHash.h Util.h libev.h
 	$(CC) $(CCFLAGS) test_client.cpp
 
-RedisClient.o: RedisClient.cpp RedisClient.h Util.h
+RedisClient.o: RedisClient.cpp RedisClient.h Util.h libev.h
 	$(CC) $(CCFLAGS) RedisClient.cpp
 
-RedisEvent.o: RedisEvent.cpp RedisEvent.h Util.h
+RedisEvent.o: RedisEvent.cpp RedisEvent.h Util.h libev.h
 	$(CC) $(CCFLAGS) RedisEvent.cpp
 
 
-RedisHash.o: RedisHash.cpp RedisHash.h Util.h
+RedisHash.o: RedisHash.cpp RedisHash.h Util.h libev.h
 	$(CC) $(CCFLAGS) RedisHash.cpp
 
 Util.o: Util.cpp Util.h
 	$(CC) $(CCFLAGS) Util.cpp
+
+libev.o: libev.cpp libev.h
+	$(CC) $(CCFLAGS) libev.cpp
 
 
 
