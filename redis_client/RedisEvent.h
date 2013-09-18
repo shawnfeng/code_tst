@@ -80,7 +80,7 @@ class RedisEvent {
 	void lock() { mutex_.lock(); }
 	void unlock() { mutex_.unlock(); }
 
-	void attach(redisAsyncContext *c, redisConnectCallback *oncall, redisDisconnectCallback *discall);
+	void attach(redisAsyncContext *c, const char *addr, void *data, redisConnectCallback *oncall, redisDisconnectCallback *discall);
 
 	void start ();
 	LogOut *log() { return log_; }

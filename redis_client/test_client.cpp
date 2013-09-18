@@ -46,8 +46,11 @@ int main (int argc, char **argv)
 	g_log.info("sleep ZZZ");
 	//sleep(1);
 
-	vector< pair<string, int> >ip_port;
-	rc.update_ends(ip_port);
+	vector< pair<string, int> >addrs;
+	addrs.push_back(pair<string, int>("127.0.0.1", 10010));
+	addrs.push_back(pair<string, int>("127.0.0.1", 10020));
+	addrs.push_back(pair<string, int>("10.2.72.23", 10010));
+	rc.update_ends(addrs);
 
 	//sleep(1);
 	//g_log.info("MAIN-->call disconnect");
@@ -57,11 +60,15 @@ int main (int argc, char **argv)
 	//	sleep(1000);
 
 	sleep(10);
+	vector<string> hash;
+	hash.push_back("127.0.0.1:10010");
+	hash.push_back("127.0.0.1:10020");
+	hash.push_back("10.2.72.23:10010");
 	for (int i = 0; i < 100; ++i) {
 		g_log.info("%d sleep ZZZZZZ", i);
 		sleep(1);
 
-		vector<string> hash;
+
 		rc.cmd(hash, "GET key0", 100);
 	}
 

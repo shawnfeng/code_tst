@@ -114,13 +114,14 @@ void RedisEvent::start()
 
 }
 
-void RedisEvent::attach(redisAsyncContext *c, redisConnectCallback *oncall, redisDisconnectCallback *discall)
+void RedisEvent::attach(redisAsyncContext *c, const char *addr, void *data,
+			redisConnectCallback *oncall, redisDisconnectCallback *discall)
 {
 	const char *fun = "RedisEvent::attach";
-	log_->info("%s-->attach c:%p", c);
+	log_->info("%s-->attach c:%p", fun, c);
 	if (!c) return;
 
-	redisLibevAttach(loop_, c, (void *)this);
+	redisLibevAttach(loop_, c, addr, data);
 
 	boost::mutex::scoped_lock lock(mutex_);
 	log_->info("%s-->conn cb %p", fun, c);
@@ -159,11 +160,15 @@ void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int tim
 
 	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
 	     it != rcxs.end(); ++it) {
-		if ((*it)->ev.data != NULL) {
-			log_->trace("%s-->redisAsyncCommand c:%p e:%p", fun, *it, (*it)->ev.data);
+		redisLibevEvents *rd = (redisLibevEvents *)(*it)->ev.data;
+		assert(rd);
+		log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
+
+		//if (rd != NULL && 1 == rd->status) {
+		if (1 == rd->status) {
 			redisAsyncCommand(*it, redis_cmd_cb, cf, c);
 		} else {
-			log_->warn("%s-->context not attach c:%p", fun, *it);
+			log_->warn("%s-->connection is not ready c:%p", fun, *it);
 		}
 	}
 

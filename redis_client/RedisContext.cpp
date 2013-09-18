@@ -2,16 +2,17 @@
 using namespace std;
 static void connectCallback(const redisAsyncContext *c, int status) {
 	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
-	RedisEvent *rev = (RedisEvent *)re->data;
+	RedisContext *rtx = (RedisContext *)re->data;
 
 	//rcx->log()->info("connectCallback c:%p", c);
 
 	if (status != REDIS_OK) {
-		rev->log()->error("connectCallback c:%p %s", c, c->errstr);
-
+		rtx->log()->error("connectCallback c:%p %s", c, c->errstr);
+		rtx->clear_ctx(re->addr);
 		return;
 	} else {
-		rev->log()->info("connectCallback c:%p ok", c);
+		re->status = 1;
+		rtx->log()->info("connectCallback c:%p ok", c);
 	}
 
 }
@@ -19,96 +20,130 @@ static void connectCallback(const redisAsyncContext *c, int status) {
 static void disconnectCallback(const redisAsyncContext *c, int status) {
 
 	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
-	RedisEvent*rev = (RedisEvent *)re->data;
+	RedisContext *rtx = (RedisContext *)re->data;
 
 	//rcx->log()->info("disconnectCallback c:%p", c);
 	if (status != REDIS_OK) {
-		rev->log()->error("disconnectCallback c:%p %s", c, c->errstr);
+		rtx->log()->error("disconnectCallback c:%p %s", c, c->errstr);
 		return;
 	} else {
-		rev->log()->info("disconnectCallback c:%p ok", c);
+		rtx->log()->info("disconnectCallback c:%p ok", c);
 	}
+	rtx->clear_ctx(re->addr);
 
 }
 
 
+void RedisContext::clear_ctx(const char *addr)
+{
+	const char *fun = "RedisContext::clear_ctx";
+	log_->info("%s-->addr clear %s", fun, addr);
 
-void RedisContext::update_ends(std::vector< std::pair<std::string, int> > &ends)
+	boost::unique_lock< boost::shared_mutex > lock(smux_);
+
+	map<string, redisAsyncContext *>::iterator it = ctxs_.find(addr);
+	if (it != ctxs_.end()) {
+		it->second = NULL;
+	} else {
+		log_->warn("%s-->addr can not find", fun, addr);
+	}
+}
+
+void RedisContext::update_ends(const std::vector< std::pair<std::string, int> > &ends)
 {
 	const char *fun = "RedisContext::update_ends";
-	redisAsyncContext *c0 = redisAsyncConnect("127.0.0.1", 10010);
-	redisAsyncContext *c1 = redisAsyncConnect("127.0.0.1", 10020);
-	redisAsyncContext *c2 = redisAsyncConnect("10.2.72.23", 10010);
-	//redisAsyncContext *c2 = redisAsyncConnect("127.0.0.1", 10030);
+	log_->info("%s-->size:%lu", fun, ends.size());
+	{
+		char buff[200];
+		boost::unique_lock< boost::shared_mutex > lock(smux_);
+		log_->info("%s-->lock", fun);
+		for (vector< pair<string, int> >::const_iterator it = ends.begin(); it != ends.end(); ++it) {
+			snprintf(buff, sizeof(buff), "%s:%d", it->first.c_str(), it->second);
+			log_->info("%s-->addr:%s", fun, buff);
 
-	c0->ev.data = NULL;
-	c1->ev.data = NULL;
-	c2->ev.data = NULL;
-		
+			map<string, redisAsyncContext *>::iterator jt = ctxs_.find(buff);
+			if (jt != ctxs_.end()) {
+				continue;
+			} else {
+				ctxs_[buff] = attach_ctx(buff);
+			}
 
-	log_->info("c0: %p", c0);
-	log_->info("c1: %p", c1);
-	log_->info("c2: %p", c2);
+			log_->info("!!!!!!!!%s-->addr:%s", fun, buff);
 
-	if (c0->err) {
-		log_->error("Error: %s", c0->errstr);
-		return;
+		}
+		log_->info("!!!!!!!!!!!!!!%s-->unlock", fun);
+
 	}
-
-	if (c1->err) {
-		log_->error("Error1: %s", c1->errstr);
-		return;
-	}
-
-	if (c2->err) {
-		log_->error("Error2: %s", c2->errstr);
-		return;
-	}
-	//test = c1;
-
-	rds_c_t r0, r1, r2;
-	r0.c = c0; r0.st = rds_c_t::SYN;
-	r1.c = c1; r1.st = rds_c_t::SYN;
-	r2.c = c2; r2.st = rds_c_t::SYN;
-
-	char buff[200];
-	snprintf(buff, sizeof(buff), "%s:%d", "127.0.0.1", 10010);
-	ctxs_[buff] = r0;
-	snprintf(buff, sizeof(buff), "%s:%d", "127.0.0.1", 10020);
-	ctxs_[buff] = r1;
-	snprintf(buff, sizeof(buff), "%s:%d", "10.2.72.23", 10010);
-	ctxs_[buff] = r2;
-
-	for (map<string, rds_c_t>::iterator it = ctxs_.begin(); it != ctxs_.end(); ++it) {
-		log_->trace("%s-->%s %p %d", fun, it->first.c_str(), it->second.c, it->second.st);
-	}
-
-
-
-	re_->attach(c0, connectCallback, disconnectCallback);
-	re_->attach(c1, connectCallback, disconnectCallback);
-	re_->attach(c2, connectCallback, disconnectCallback);
-
+	log_->info("%s-->over", fun);
 }
 
-/*
-void RedisContext::attach(redisAsyncContext *c)
+redisAsyncContext * RedisContext::attach_ctx(const string &addr)
 {
-	const char *fun = "RedisContext::attach";
-	log_->info("%s-->attach c:%p loop:%p", fun, c, loop_);
-	redisLibevAttach(loop_, c, (void *)this);
+	const char *fun = "RedisContext::attach_ctx";
+
+	size_t pos = addr.find(":");
+	if (pos == string::npos) {
+		log_->error("%s-->error format 0 addr:%s", fun, addr.c_str());
+		return NULL;
+	}
+
+	string ip = addr.substr(0, pos);
+	int port = atoi(addr.substr(pos+1).c_str());
+
+	if (port == 0 || ip.empty()) {
+		log_->error("%s-->error format addr:%s ip:%s port:%d", fun, addr.c_str(), ip.c_str(), port);
+		return NULL;
+	} else {
+		log_->info("%s-->format addr:%s ip:%s port:%d", fun, addr.c_str(), ip.c_str(), port);
+		redisAsyncContext *c = redisAsyncConnect(ip.c_str(), port);
+		c->ev.data = NULL;
+		re_->attach(c, addr.c_str(), (void *)this, connectCallback, disconnectCallback);
+		return c;
+	}
 }
-*/
 
 void RedisContext::hash_rcx(const std::vector<std::string> &hash, std::set<redisAsyncContext *> &rcxs)
 {
+
 	const char *fun = "RedisContext::hash_rcx";
-	for (map<string, rds_c_t>::iterator it = ctxs_.begin(); it != ctxs_.end(); ++it) {
-		pair<set<redisAsyncContext *>::iterator, bool> rv = rcxs.insert(it->second.c);
-		if (!rv.second) {
-			log_->warn("%s-->duplicate context c:%p", fun, it->second.c);
+
+	vector<string> addrs = hash;
+
+	vector<string> addrs_not_init;
+
+	{
+		boost::shared_lock< boost::shared_mutex > lock(smux_);
+		for (vector<string>::const_iterator it = addrs.begin();
+		     it != addrs.end(); ++it) {
+			map<string, redisAsyncContext *>::iterator jt = ctxs_.find(*it);
+			if (jt == ctxs_.end()) continue;
+
+			if (jt->second) {
+				rcxs.insert(jt->second);
+			} else {
+				addrs_not_init.push_back(*it);
+			}
 		}
 	}
+
+	if (!addrs_not_init.empty()) {
+		log_->warn("%s-->addrs_not_init size:%lu", fun, addrs_not_init.size());
+		boost::unique_lock< boost::shared_mutex > lock(smux_);
+		for (vector<string>::const_iterator it = addrs_not_init.begin();
+		     it != addrs_not_init.end(); ++it) {
+			log_->info("%s-->addrs:%s", fun, it->c_str());
+			map<string, redisAsyncContext *>::iterator jt = ctxs_.find(*it);
+			if (jt == ctxs_.end()) continue;
+
+			if (jt->second == NULL) {
+				ctxs_[*it] = attach_ctx(*it);
+			}
+
+		}
+
+	}
+	
+
 }
 
 

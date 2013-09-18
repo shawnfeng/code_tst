@@ -14,26 +14,23 @@
 
 
 class RedisContext {
-	struct rds_c_t {
-		enum { NONE, SYN, ESTABLISHED, CLOSED, };
-		int st;
-		redisAsyncContext *c;
-
-	rds_c_t() : st(NONE), c(NULL) {}
-	};
 	LogOut *log_;
 	RedisEvent *re_;
 	struct ev_loop *loop_;
-	boost::mutex mutex_;
-	std::map<std::string, rds_c_t> ctxs_;
 
+	boost::shared_mutex smux_;
+	std::map<std::string, redisAsyncContext *> ctxs_;
+
+	redisAsyncContext *attach_ctx(const std::string &addr);
  public:
 
  RedisContext(LogOut *log, RedisEvent *re) : log_(log), re_(re), loop_(EV_DEFAULT) {
 		log->info("%s-->loop:%p", "RedisContext::RedisContext", loop_);
 	}
-	void update_ends(std::vector< std::pair<std::string, int> > &ends);
+	void update_ends(const std::vector< std::pair<std::string, int> > &ends);
 	//void attach(redisAsyncContext *c);
+
+	void clear_ctx(const char *addr);
 
 	void hash_rcx(const std::vector<std::string> &hash, std::set<redisAsyncContext *> &rcxs);
 	LogOut *log() { return log_; }
