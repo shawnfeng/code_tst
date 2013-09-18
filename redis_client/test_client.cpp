@@ -1,5 +1,5 @@
 #include <sys/syscall.h> 
-
+#include <arpa/inet.h>
 #include "RedisClient.h"
 
 using namespace std;
@@ -34,7 +34,24 @@ static void log_error(const char *log)
 static LogOut g_log(log_trace, log_debug, log_info, log_warn, log_error);
 
 
-#include <arpa/inet.h>
+
+
+
+
+void *thread_cb(void* args)
+{  
+	RedisClient *rc = (RedisClient *)args;
+	vector<string> hash;
+
+	for (int i = 0; i < 2000; ++i) {
+		rc->cmd(hash, "GET key0", 100);
+	}
+
+	return NULL;
+
+}
+
+
 int main (int argc, char **argv)
 {
 
@@ -56,39 +73,33 @@ int main (int argc, char **argv)
 	int64_ipv4(ipv4, buff, 100, port);
 	g_log.info("ip=%s,port=%d", buff, port);
 
+
+	//=================================
 	g_log.info("MAIN-->RediClient init");
 	RedisClient rc(log_trace, log_debug, log_info, log_warn, log_error);
 
 	rc.start();
 	g_log.info("MAIN-->RedisClient start");
 	g_log.info("sleep ZZZ");
-	//sleep(1);
-	/*
-	vector< pair<string, int> >addrs;
-	addrs.push_back(pair<string, int>("127.0.0.1", 10010));
-	addrs.push_back(pair<string, int>("127.0.0.1", 10020));
-	addrs.push_back(pair<string, int>("10.2.72.23", 10010));
-	rc.update_ends(addrs);
-	*/
+	// ============================
 
+	pthread_t pids[20];
+	int pn = (int)(sizeof(pids)/sizeof(pids[0]));
+	for (int i = 0; i < pn; ++i) {
+		if (pthread_create(&pids[i], NULL, thread_cb, (void *)&rc)) {
+			printf("create thread error!\n");
+			return -1;  
+		}
 
-	sleep(3);
-	vector<string> hash;
-	hash.push_back("127.0.0.1:10010");
-	hash.push_back("127.0.0.1:10020");
-	hash.push_back("10.2.72.23:10010");
-	for (int i = 0; i < 2; ++i) {
-		g_log.info("%d sleep ZZZZZZ", i);
-		sleep(3);
+	}
 
-
-		rc.cmd(hash, "GET key0", 100);
+	for (int i = 0; i < pn; ++i) {
+		pthread_join(pids[i],NULL);
 	}
 
 
-
 	g_log.info("MAIN-->hold here");
-	pause();
+	//	pause();
 	
 	return 1;
 

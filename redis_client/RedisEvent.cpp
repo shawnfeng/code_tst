@@ -180,7 +180,9 @@ void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
-	log_->debug("%s-->size:%lu cmd:%s", fun, addrs.size(), cs);
+	ReqCount rcount(req_count_);
+
+	log_->debug("%s-->size:%lu cmd:%s rcount=%d", fun, addrs.size(), cs, rcount.cn());
 	if (addrs.empty()) {
 		log_->warn("%s-->empty redis context cmd:%s", fun, cs);
 		return;

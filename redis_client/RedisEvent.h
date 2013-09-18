@@ -62,6 +62,14 @@ public:
 
 };
 
+class ReqCount {
+	int &cn_;
+ public:
+ ReqCount(int &cn) : cn_(++cn) {}
+	~ReqCount() { --cn_; }
+
+	int cn() { return cn_; }
+};
 
 
 class RedisEvent {
@@ -74,13 +82,14 @@ class RedisEvent {
 	boost::mutex mutex_;
 	userdata_t ud_;
 
+	int req_count_;
 
  private:
 	void run();
 
  public:
 	RedisEvent(LogOut *log
-		   ) : log_(log), loop_(EV_DEFAULT), ud_(this)
+		   ) : log_(log), loop_(EV_DEFAULT), ud_(this), req_count_(0)
 		{
 			log->info("%s-->loop:%p", "RedisEvent::RedisEvent", loop_);
 		}
