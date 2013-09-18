@@ -3,6 +3,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+
+
 class LogOut {
 	void (*log_t_)(const char *);
 	void (*log_d_)(const char *);
@@ -23,9 +25,6 @@ class LogOut {
 	}
 
  public:
-	// WARNING: the trace set is just use for trace the routine
-	// process, which will cause low performance!
-	// so NULL will be setted log_e for online environment
 	LogOut(
 	       void (*log_t)(const char *),
 	       void (*log_d)(const char *),
@@ -42,6 +41,8 @@ class LogOut {
 	void error(const char *format, ...) { LOGOUT_FMT_LOG(format, log_e_) }
 
 };
+
+ulong ipv4_ulong(const char *ip, uint port);
 
 
 #endif

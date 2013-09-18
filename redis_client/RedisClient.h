@@ -9,6 +9,9 @@ class RedisClient {
 	RedisEvent re_;
 	RedisContext rcx_;
  public:
+	// WARNING: the trace set is just use for trace the routine
+	// process, which will cause low performance!
+	// so NULL will be setted log_e for online environment
 	RedisClient(void (*log_t)(const char *),
 		    void (*log_d)(const char *),
 		    void (*log_i)(const char *),

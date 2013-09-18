@@ -38,6 +38,10 @@ static LogOut g_log(log_trace, log_debug, log_info, log_warn, log_error);
 int main (int argc, char **argv)
 {
 
+	//long ip = inet_addr("10.3.2.3");
+	//g_log.info("ip=%ld", ip);
+	g_log.info("%lu", sizeof(ulong));
+
 	g_log.info("MAIN-->RediClient init");
 	RedisClient rc(log_trace, log_debug, log_info, log_warn, log_error);
 

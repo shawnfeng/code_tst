@@ -131,6 +131,96 @@ void RedisEvent::attach(redisAsyncContext *c, const char *addr, void *data,
 	ev_async_send (loop_, &async_w_);
 }
 
+void RedisEvent::connect(ulong addr)
+{
+
+}
+
+void RedisEvent::cmd(set<ulong> &addrs, const char *c, int timeout)
+{
+	//userdata *u = (userdata *)ev_userdata (loop_);
+	const char *fun = "RedisEvent::cmd";
+	log_->debug("%s-->size:%lu cmd:%s", fun, addrs.size(), c);
+	if (addrs.empty()) {
+		log_->warn("%s-->empty redis context cmd:%s", fun, c);
+		return;
+	}
+
+	userdata_t *u = &ud_;
+
+	cmd_arg_t carg;
+	cflag_t *cf = NULL;
+
+
+	// ==========lock==========
+	log_->trace("%s-->loop lock", fun);
+	mutex_.lock();
+
+	cf = u->get_cf();
+	if (cf->f() || cf->d()) {
+		log_->error("%s-->userdata have data!", fun);
+	}
+	cf->set_f((int)rcxs.size());
+	cf->set_d((void *)&carg);
+
+	for (set<ulong>::const_iterator it = addrs.begin();
+	     it != addrs.end(); ++it) {
+
+		redisAsyncContext *c = u->lookup(*it);
+		if (NULL == c) {
+
+		}
+
+
+
+	}
+
+	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
+	     it != rcxs.end(); ++it) {
+		redisLibevEvents *rd = (redisLibevEvents *)(*it)->ev.data;
+		assert(rd);
+		log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
+
+		//if (rd != NULL && 1 == rd->status) {
+		if (1 == rd->status) {
+			redisAsyncCommand(*it, redis_cmd_cb, cf, c);
+		} else {
+			log_->warn("%s-->connection is not ready c:%p", fun, *it);
+		}
+	}
+
+	ev_async_send (loop_, &async_w_);
+
+	bool is_timeout = true;
+	{
+		// waiting
+		boost::mutex::scoped_lock lock(carg.mux);  // must can get lock!
+	log_->trace("%s-->loop unlock", fun);
+	mutex_.unlock(); // card.mux had beed locked, then release mutex_
+	// ==========unlock==========
+	        log_->trace("%s-->condition wait %d", fun, timeout);
+		is_timeout = !carg.cond.timed_wait(lock, boost::posix_time::milliseconds(timeout));
+	}
+
+	log_->trace("%s-->condition pass istimeout=%d", fun, is_timeout);
+	if (is_timeout) {
+		boost::mutex::scoped_lock lock(mutex_);
+		log_->trace("%s-->cf=%p cf->f=%d cf->d=%p", fun, cf, cf->f(), cf->d());
+		cf->reset();
+	}
+	// log out free lock
+	if (is_timeout) {
+		log_->warn("%s-->timeout c:%s", fun, c);
+	}
+
+	const vector<string> &vs = carg.vs;
+	for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
+		log_->debug("=== %s ===", it->c_str());
+	}
+
+
+}
+
 void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
