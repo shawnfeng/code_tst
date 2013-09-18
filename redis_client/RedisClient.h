@@ -23,8 +23,8 @@ class RedisClient {
 
 	void start() { re_.start(); }
 	void update_ends(std::vector< std::pair<std::string, int> > &ends) { rcx_.update_ends(ends); }
-	void cmd(const std::vector<std::string> &hash, const char *c, int timeout);
-	void cmd(const std::vector<long> &hash, const char *c, int timeout);
+	void cmd(const std::vector<std::string> &hash, const char *c, int timeout, std::vector<std::string> &rv);
+	void cmd(const std::vector<long> &hash, const char *c, int timeout, std::vector<std::string> &rv);
 
 };
 

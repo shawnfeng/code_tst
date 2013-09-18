@@ -176,7 +176,7 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout)
+void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout, std::vector<std::string> &rv)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
@@ -255,11 +255,8 @@ void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout)
 
 
 	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, cs);
-	const vector<string> &vs = carg.vs;
-	for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
-		log_->debug("=== %s ===", it->c_str());
-	}
 
+	rv.swap(carg.vs);
 
 }
 

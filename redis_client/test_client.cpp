@@ -43,8 +43,15 @@ void *thread_cb(void* args)
 	RedisClient *rc = (RedisClient *)args;
 	vector<string> hash;
 
-	for (int i = 0; i < 2000; ++i) {
-		rc->cmd(hash, "GET key0", 100);
+	for (int i = 0; i < 2; ++i) {
+		vector<string> vs;
+		rc->cmd(hash, "GET key0", 100, vs);
+
+		for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
+			g_log.debug("=== %s ===", it->c_str());
+		}
+
+
 	}
 
 	return NULL;
@@ -90,7 +97,7 @@ int main (int argc, char **argv)
 	g_log.info("sleep ZZZ");
 	// ============================
 
-	pthread_t pids[20];
+	pthread_t pids[2];
 	int pn = (int)(sizeof(pids)/sizeof(pids[0]));
 	for (int i = 0; i < pn; ++i) {
 		if (pthread_create(&pids[i], NULL, thread_cb, (void *)&rc)) {
