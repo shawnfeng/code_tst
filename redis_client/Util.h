@@ -42,7 +42,9 @@ class LogOut {
 
 };
 
-ulong ipv4_ulong(const char *ip, uint port);
+uint64_t ipv4_int64(const char *ip, int port);
+
+void int64_ipv4(uint64_t ipv4, char *ip, size_t len, int &port);
 
 
 #endif

@@ -34,7 +34,7 @@ class userdata_t {
 	enum { CUR_CALL_NUM = 100000, };
 	size_t idx_;
 	cflag_t cfg_[CUR_CALL_NUM];
-	std::map<ulong, redisAsyncContext *> ctxs_;
+	std::map<uint64_t, redisAsyncContext *> ctxs_;
 	RedisEvent *re_;
 
  private:
@@ -55,16 +55,10 @@ public:
 		return cf;
 	}
 
-	redisAsyncContext *lookup(ulong addr)
-	{
-		std::map<ulong, redisAsyncContext *>::const_iterator it = ctxs_.find(addr);
-		if (it == ctxs_.end()) {
-			ctxs_[addr] = NULL;
-			return NULL;
-		} else {
-			return it->second;
-		}
-	}
+	void insert(uint64_t addr, redisAsyncContext *c);
+	void clear(uint64_t addr);
+	redisAsyncContext *lookup(uint64_t addr);
+
 
 };
 
@@ -94,15 +88,13 @@ class RedisEvent {
 	void lock() { mutex_.lock(); }
 	void unlock() { mutex_.unlock(); }
 
-	void attach(redisAsyncContext *c, const char *addr, void *data, redisConnectCallback *oncall, redisDisconnectCallback *discall);
 
-	void connect(ulong addr);
+	void connect(uint64_t addr);
 
 	void start ();
 	LogOut *log() { return log_; }
 
-	void cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int timeout);
-	void cmd(std::set<ulong> &addrs, const char *c, int timeout);
+	void cmd(std::set<uint64_t> &addrs, const char *cs, int timeout);
 	struct ev_loop *loop() { return loop_; }
 
 };

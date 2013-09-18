@@ -11,7 +11,43 @@ struct cmd_arg_t {
 	vector<string> vs;
 };
 
+static void connectCallback(const redisAsyncContext *c, int status) {
+	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
+	//RedisEvent *rev = (RedisEvent *)re->data;
 
+	//rcx->log()->info("connectCallback c:%p", c);
+
+	userdata_t *u = (userdata_t *)ev_userdata(EV_DEFAULT);
+	RedisEvent *rev = u->re();
+	assert(rev);
+
+	if (status != REDIS_OK) {
+		rev->log()->error("connectCallback c:%p %s", c, c->errstr);
+		u->clear(re->addr);
+		return;
+	} else {
+		re->status = 1;
+		rev->log()->info("connectCallback c:%p ok", c);
+	}
+
+}
+
+static void disconnectCallback(const redisAsyncContext *c, int status) {
+
+	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
+	//RedisEvent *rev = (RedisEvent *)re->data;
+	userdata_t *u = (userdata_t *)ev_userdata(EV_DEFAULT);
+	RedisEvent *rev = u->re();
+	assert(rev);
+
+	if (status != REDIS_OK) {
+		rev->log()->error("disconnectCallback c:%p %s", c, c->errstr);
+		return;
+	} else {
+		rev->log()->info("disconnectCallback c:%p ok", c);
+	}
+	u->clear(re->addr);
+}
 
 
 static void async_cb (EV_P_ ev_async *w, int revents)
@@ -114,35 +150,39 @@ void RedisEvent::start()
 
 }
 
-void RedisEvent::attach(redisAsyncContext *c, const char *addr, void *data,
-			redisConnectCallback *oncall, redisDisconnectCallback *discall)
+// caller had been locked
+void RedisEvent::connect(uint64_t addr)
 {
-	const char *fun = "RedisEvent::attach";
-	log_->info("%s-->attach c:%p", fun, c);
-	if (!c) return;
+	const char *fun = "RedisEvent::connect";
 
-	redisLibevAttach(loop_, c, addr, data);
+	char ip[50];
+	int port;
+	int64_ipv4(addr, ip, sizeof(ip), port);
 
-	boost::mutex::scoped_lock lock(mutex_);
-	log_->info("%s-->conn cb %p", fun, c);
-	redisAsyncSetConnectCallback(c, oncall);
-	redisAsyncSetDisconnectCallback(c, discall);
+	//	log_->info("%s-->connect ip:%s port:%d", ip, port);
+	redisAsyncContext *c = redisAsyncConnect(ip, port);
+	log_->info("%s-->connect ip:%s port:%d c:%p", fun, ip, port, c);
+	if (c->err) {
+		log_->error("%s-->%s", fun, c->errstr);
+		return;
+	}
+	c->ev.data = NULL;
 
-	ev_async_send (loop_, &async_w_);
+	ud_.insert(addr, c);
+
+	redisLibevAttach(loop_, c, addr);
+	redisAsyncSetConnectCallback(c, connectCallback);
+	redisAsyncSetDisconnectCallback(c, disconnectCallback);
+
 }
 
-void RedisEvent::connect(ulong addr)
-{
-
-}
-
-void RedisEvent::cmd(set<ulong> &addrs, const char *c, int timeout)
+void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
-	log_->debug("%s-->size:%lu cmd:%s", fun, addrs.size(), c);
+	log_->debug("%s-->size:%lu cmd:%s", fun, addrs.size(), cs);
 	if (addrs.empty()) {
-		log_->warn("%s-->empty redis context cmd:%s", fun, c);
+		log_->warn("%s-->empty redis context cmd:%s", fun, cs);
 		return;
 	}
 
@@ -160,107 +200,31 @@ void RedisEvent::cmd(set<ulong> &addrs, const char *c, int timeout)
 	if (cf->f() || cf->d()) {
 		log_->error("%s-->userdata have data!", fun);
 	}
-	cf->set_f((int)rcxs.size());
-	cf->set_d((void *)&carg);
 
-	for (set<ulong>::const_iterator it = addrs.begin();
+	int wsz = 0;
+	for (set<uint64_t>::const_iterator it = addrs.begin();
 	     it != addrs.end(); ++it) {
 
 		redisAsyncContext *c = u->lookup(*it);
 		if (NULL == c) {
-
-		}
-
-
-
-	}
-
-	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
-	     it != rcxs.end(); ++it) {
-		redisLibevEvents *rd = (redisLibevEvents *)(*it)->ev.data;
-		assert(rd);
-		log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
-
-		//if (rd != NULL && 1 == rd->status) {
-		if (1 == rd->status) {
-			redisAsyncCommand(*it, redis_cmd_cb, cf, c);
+			connect(*it);
 		} else {
-			log_->warn("%s-->connection is not ready c:%p", fun, *it);
+			redisLibevEvents *rd = (redisLibevEvents *)c->ev.data;
+			assert(rd);
+			log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
+			if (1 == rd->status) {
+				redisAsyncCommand(c, redis_cmd_cb, cf, cs);
+				wsz++;
+			} else {
+				log_->warn("%s-->connection is not ready c:%p", fun, *it);
+			}
+
 		}
+
 	}
-
-	ev_async_send (loop_, &async_w_);
-
-	bool is_timeout = true;
-	{
-		// waiting
-		boost::mutex::scoped_lock lock(carg.mux);  // must can get lock!
-	log_->trace("%s-->loop unlock", fun);
-	mutex_.unlock(); // card.mux had beed locked, then release mutex_
-	// ==========unlock==========
-	        log_->trace("%s-->condition wait %d", fun, timeout);
-		is_timeout = !carg.cond.timed_wait(lock, boost::posix_time::milliseconds(timeout));
-	}
-
-	log_->trace("%s-->condition pass istimeout=%d", fun, is_timeout);
-	if (is_timeout) {
-		boost::mutex::scoped_lock lock(mutex_);
-		log_->trace("%s-->cf=%p cf->f=%d cf->d=%p", fun, cf, cf->f(), cf->d());
-		cf->reset();
-	}
-	// log out free lock
-	if (is_timeout) {
-		log_->warn("%s-->timeout c:%s", fun, c);
-	}
-
-	const vector<string> &vs = carg.vs;
-	for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
-		log_->debug("=== %s ===", it->c_str());
-	}
-
-
-}
-
-void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int timeout)
-{
-	//userdata *u = (userdata *)ev_userdata (loop_);
-	const char *fun = "RedisEvent::cmd";
-	log_->debug("%s-->size:%lu cmd:%s", fun, rcxs.size(), c);
-	if (rcxs.empty()) {
-		log_->warn("%s-->empty redis context cmd:%s", fun, c);
-		return;
-	}
-
-	userdata_t *u = &ud_;
-
-	cmd_arg_t carg;
-	cflag_t *cf = NULL;
-
-
-	// ==========lock==========
-	log_->trace("%s-->loop lock", fun);
-	mutex_.lock();
-
-	cf = u->get_cf();
-	if (cf->f() || cf->d()) {
-		log_->error("%s-->userdata have data!", fun);
-	}
-	cf->set_f((int)rcxs.size());
+	cf->set_f(wsz);
 	cf->set_d((void *)&carg);
 
-	for (set<redisAsyncContext *>::const_iterator it = rcxs.begin();
-	     it != rcxs.end(); ++it) {
-		redisLibevEvents *rd = (redisLibevEvents *)(*it)->ev.data;
-		assert(rd);
-		log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
-
-		//if (rd != NULL && 1 == rd->status) {
-		if (1 == rd->status) {
-			redisAsyncCommand(*it, redis_cmd_cb, cf, c);
-		} else {
-			log_->warn("%s-->connection is not ready c:%p", fun, *it);
-		}
-	}
 
 	ev_async_send (loop_, &async_w_);
 
@@ -268,8 +232,9 @@ void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int tim
 	{
 		// waiting
 		boost::mutex::scoped_lock lock(carg.mux);  // must can get lock!
-	log_->trace("%s-->loop unlock", fun);
+
 	mutex_.unlock(); // card.mux had beed locked, then release mutex_
+	log_->trace("%s-->loop unlock", fun);
 	// ==========unlock==========
 	        log_->trace("%s-->condition wait %d", fun, timeout);
 		is_timeout = !carg.cond.timed_wait(lock, boost::posix_time::milliseconds(timeout));
@@ -283,9 +248,11 @@ void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int tim
 	}
 	// log out free lock
 	if (is_timeout) {
-		log_->warn("%s-->timeout c:%s", fun, c);
+		log_->warn("%s-->timeout cs:%s", fun, cs);
 	}
 
+
+	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, cs);
 	const vector<string> &vs = carg.vs;
 	for (vector<string>::const_iterator it = vs.begin(); it != vs.end(); ++it) {
 		log_->debug("=== %s ===", it->c_str());
@@ -295,5 +262,28 @@ void RedisEvent::cmd(std::set<redisAsyncContext *> &rcxs, const char *c, int tim
 }
 
 
+// =============================
+void userdata_t::insert(uint64_t addr, redisAsyncContext *c)
+{
+	assert(ctxs_.find(addr) == ctxs_.end());
+	re_->log()->info("userdata_t::insert addr:%lu c:%p", addr, c);
+	ctxs_[addr] = c;
+}
 
+void userdata_t::clear(uint64_t addr)
+{
+	std::map<uint64_t, redisAsyncContext *>::iterator it = ctxs_.find(addr);
+	assert(it != ctxs_.end());
+	re_->log()->info("userdata_t::clear addr:%lu c:%p", addr, it->second);
+	ctxs_.erase(it);
+}
 
+redisAsyncContext *userdata_t::lookup(uint64_t addr)
+{
+	std::map<uint64_t, redisAsyncContext *>::const_iterator it = ctxs_.find(addr);
+	if (it == ctxs_.end()) {
+		return NULL;
+	} else {
+		return it->second;
+	}
+}

@@ -2,12 +2,12 @@
 #define __REDIS_CLIENT_H_H__
 
 #include "RedisEvent.h"
-#include "RedisContext.h"
+#include "RedisHash.h"
 
 class RedisClient {
 	LogOut log_;
 	RedisEvent re_;
-	RedisContext rcx_;
+	RedisHash rcx_;
  public:
 	// WARNING: the trace set is just use for trace the routine
 	// process, which will cause low performance!
