@@ -47,13 +47,13 @@ RedisEvent.o: RedisEvent.cpp RedisEvent.h Util.h libev.h
 	$(CC) $(CCFLAGS) RedisEvent.cpp
 
 
-RedisHash.o: RedisHash.cpp RedisHash.h Util.h libev.h
+RedisHash.o: RedisHash.cpp RedisHash.h RedisEvent.h Util.h libev.h
 	$(CC) $(CCFLAGS) RedisHash.cpp
 
 Util.o: Util.cpp Util.h
 	$(CC) $(CCFLAGS) Util.cpp
 
-libev.o: libev.cpp libev.h
+libev.o: libev.cpp libev.h RedisEvent.h Util.h
 	$(CC) $(CCFLAGS) libev.cpp
 
 

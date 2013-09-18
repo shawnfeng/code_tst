@@ -10,12 +10,11 @@
 #include <async.h>
 
 typedef struct redisLibevEvents {
-    redisAsyncContext *context;
-    struct ev_loop *loop;
-    int reading, writing;
-    ev_io rev, wev;
+	redisAsyncContext *context;
+	struct ev_loop *loop;
+	int reading, writing;
+	ev_io rev, wev;
 	uint64_t addr;
-	//	char addr[200];
 	int status; // 0 attach 1 establish
 } redisLibevEvents;
 
