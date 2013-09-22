@@ -19,7 +19,7 @@ struct string_cb_data {
 	zhandle_t *zh;
 	const char *path;
 	const char *info;
-	void *watcher;
+	//	void *watcher;
 };
 
 static void string_cb(int rc,
@@ -63,7 +63,7 @@ static void string_cb(int rc,
 		g_log.error("string_cb-->node is not exist");
 		zoo_awget_children(sd->zh,
 				   sd->path,
-				   child_wc, sd->watcher,
+				   child_wc, (void *)data,
 				   string_cb, data);
 
 		sleep(2);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 
 	const char *zkhost = "127.0.0.1:4180,127.0.0.1:4181,127.0.0.1:4182";
 
-	zhandle_t *zh = zookeeper_init(zkhost, init_wc, 10000, 0, 0, 0);
+	zhandle_t *zh = zookeeper_init(zkhost, init_wc, 10000, 0, (void *)"init zk", 0);
 
 	g_log.info("main-->zkhost=%s,zh=%p", zkhost, zh);
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 	sd.zh = zh;
 	sd.info = "strings_completion_t data";
 	sd.path = path;
-	sd.watcher = (void *)&sd;
+	//	sd.watcher = (void *)&sd;
 	rc = zoo_awget_children(zh,
 				path,
 				child_wc, (void *)&sd,

@@ -12,6 +12,17 @@
 #include "Util.h"
 #include "RedisEvent.h"
 
+struct zk_ctx_t {
+	std::string addr;
+	zhandle_t *h;
+	std::string path;
+
+
+zk_ctx_t(const char *zk_addr,
+	 const char *zk_path) :
+	addr(zk_addr), h(NULL), path(zk_path) {}
+};
+
 
 class RedisHash {
 	LogOut *log_;
@@ -20,9 +31,7 @@ class RedisHash {
 	std::set<uint64_t> addrs_;
 
 	// zookeeper
-	zhandle_t *zkh_;
-	std::string zk_addr_;
-	std::string zk_path_;
+	zk_ctx_t zk_ctx_;
 
  public:
 
@@ -30,14 +39,13 @@ class RedisHash {
 	   const char *zk_addr,
 	   const char *zk_path)
 	 : log_(log), re_(re),
-		zkh_(NULL),
-		zk_addr_(zk_addr),
-		zk_path_(zk_path)
+		zk_ctx_(zk_addr, zk_path)
 		{
 
 		}
+	~RedisHash() { if (zk_ctx_.h) zookeeper_close(zk_ctx_.h);}
 	void update_ends(const std::vector< std::pair<std::string, int> > &ends);
-
+	zk_ctx_t *zk_ctx() { return &zk_ctx_; }
 	int start();
 
 	void hash_addr(const std::vector<std::string> &hash, std::set<uint64_t> &addrs);

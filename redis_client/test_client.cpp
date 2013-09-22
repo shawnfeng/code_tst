@@ -53,11 +53,13 @@ int main (int argc, char **argv)
 	g_log.info("MAIN-->RediClient init");
 	RedisClient rc(LogOut::log_trace, LogOut::log_debug, LogOut::log_info, LogOut::log_warn, LogOut::log_error,
 		       //		       "127.0.0.1:4180,127.0.0.1:4181,127.0.0.1:4182",
-		       "127.0.0.1:4000,127.0.0.1:5001,127.0.0.1:5002",
+		       "127.0.0.1:4180,127.0.0.1:4181,127.0.0.1:4182",
 		       "/tx/online/legal_nodes"
 		       );
 
 	rc.start();
+
+	pause();
 
 	vector< pair<string, int> > ends;
 	ends.push_back(pair<string, int>("127.0.0.1", 10010));
@@ -85,7 +87,7 @@ int main (int argc, char **argv)
 
 
 	g_log.info("MAIN-->hold here");
-	//	pause();
+	pause();
 	
 	return 1;
 

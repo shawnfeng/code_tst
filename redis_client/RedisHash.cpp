@@ -2,16 +2,103 @@
 
 using namespace std;
 
+
+static void redis_node_wc(zhandle_t *zh, int type, int state, const char *path, void *data);
+static void redis_node_cb(int rc, const struct String_vector *strings, const void *data);
+static void init_watcher(zhandle_t *zh, int type, int state, const char *path, void *data);
+
+static void init_watcher(zhandle_t *zh, int type, int state, const char *path,
+			 void *data)
+{
+	RedisHash *rh = (RedisHash *)data;
+	assert(rh);
+	LogOut *log = rh->log();
+
+	log->info("init_wc-->zh=%p,type=%d,state=%d,path=%s,watcherCtx=%p",
+		    zh, type, state, path, rh);
+}
+
+static void redis_node_wc(zhandle_t *zh, int type, int state, const char *path, void *data)
+{
+	const char *fun = "redis_node_wc";
+	RedisHash *rh = (RedisHash *)data;
+	assert(rh);
+	LogOut *log = rh->log();
+
+	log->info("%s-->zh=%p,type=%d,state=%d,path=%s,watcherCtx=%p",
+		  fun, zh, type, state, path, data);
+
+
+	log->info("%s-->readd watcher", fun);
+	zoo_awget_children(zh,
+			   path,
+			   redis_node_wc, data,
+			   redis_node_cb, data);
+
+
+}
+
+
+static void redis_node_cb(int rc, const struct String_vector *strings, const void *data)
+{
+
+	const char *fun = "redis_node_cb";
+	RedisHash *rh = (RedisHash *)data;
+	assert(rh);
+	LogOut *log = rh->log();
+	zk_ctx_t *ctx = rh->zk_ctx();
+
+	log->warn("%s-->rc=%d,strings=%p,data=%p",
+		  fun, rc, strings, data
+		  );
+
+	if (ZOK != rc) {
+		// 节点不存在时候，后续即使节点被创建了也不会触发watcher
+		// 所以要再设置一下
+		log->error("%s-->error rc=%d rewatch", fun, rc);
+		zoo_awget_children(ctx->h,
+				   ctx->path.c_str(),
+				   redis_node_wc, (void *)data,
+				   redis_node_cb, data);
+
+		sleep(1);
+
+	} else {
+
+		char **dp = strings->data;
+		for (int i = 0; i < strings->count; ++i) {
+			log->info("%s/%s", ctx->path.c_str(), *dp++);
+		}
+
+	}
+
+
+}
+
 int RedisHash::start()
 {
 	const char *fun = "RedisHash::start";
-	zhandle_t *zkh = zookeeper_init(zk_addr_.c_str(), NULL, 10000, 0, 0, 0);
+	zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR);
+	zhandle_t *zkh = zookeeper_init(zk_ctx_.addr.c_str(), init_watcher, 10000, 0, (void *)this, 0);
 	if (!zkh) {
-		log_->error("%s-->error init zk %s", fun, zk_addr_.c_str());
+		log_->error("%s-->error init zk %s zk can not used, please check add restart", fun, zk_ctx_.addr.c_str());
 		return 1;
 	}
 
-	log_->info("%s-->init ok zk %s", fun, zk_addr_.c_str());
+	zk_ctx_.h = zkh;
+	log_->info("%s-->init ok zk %s", fun, zk_ctx_.addr.c_str());
+
+	int rc = zoo_awget_children(zkh,
+				    zk_ctx_.path.c_str(),
+				    redis_node_wc, (void *)this,
+				    redis_node_cb, (void *)this);
+
+
+	if (rc != ZOK) {
+		log_->error("zk awget children error %d!", rc);
+		return 2;
+	}
+
 	return 0;
 }
 
