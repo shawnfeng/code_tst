@@ -58,15 +58,16 @@ int main (int argc, char **argv)
 		       );
 
 	rc.start();
-
-	pause();
-
+	sleep(2);
+	//pause();
+	/*
 	vector< pair<string, int> > ends;
 	ends.push_back(pair<string, int>("127.0.0.1", 10010));
 	ends.push_back(pair<string, int>("127.0.0.1", 10020));
 	ends.push_back(pair<string, int>("10.2.72.23", 10010));
 
 	rc.update_ends(ends);
+	*/
 	g_log.info("MAIN-->RedisClient start");
 	g_log.info("sleep ZZZ");
 	// ============================
