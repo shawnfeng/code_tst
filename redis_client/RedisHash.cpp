@@ -66,9 +66,22 @@ static void redis_node_cb(int rc, const struct String_vector *strings, const voi
 	} else {
 
 		char **dp = strings->data;
+		vector< pair<string, int> > ends;
 		for (int i = 0; i < strings->count; ++i) {
-			log->info("%s/%s", ctx->path.c_str(), *dp++);
+			char *chd = *dp++;
+			log->info("%s-->%s/%s", fun, ctx->path.c_str(), chd);
+			string ip;
+			int port;
+			string err;
+			if (!str_ipv4(chd, ip, port, err)) {
+				log->error("%s-->child %s format error", fun, chd);
+				return;
+			} else {
+				ends.push_back(pair<string, int>(ip, port));
+			}
 		}
+
+		rh->update_ends(ends);
 
 	}
 
@@ -111,7 +124,9 @@ void RedisHash::update_ends(const vector< pair<string, int> > &ends)
 	for (vector< pair<string, int> >::const_iterator it = ends.begin();
 		     it != ends.end();
 		     ++it) {
+
 		uint64_t addr = ipv4_int64(it->first.c_str(), it->second);
+		log_->info("%s-->ends:%s:%d addr:%lu", fun, it->first.c_str(), it->second, addr);
 		addrs.insert(addr);
 	}
 

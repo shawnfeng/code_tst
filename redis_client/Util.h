@@ -63,5 +63,7 @@ uint64_t ipv4_int64(const char *ip, int port);
 
 void int64_ipv4(uint64_t ipv4, char *ip, size_t len, int &port);
 
+bool str_ipv4(const std::string &addr, std::string &ip, int &port, std::string &err);
+
 
 #endif
