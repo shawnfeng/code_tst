@@ -1,30 +1,28 @@
 include ../Makefile.mk
 
-libredis_client.a: RedisClient.o RedisEvent.o RedisHash.o Util.o libev.o
+#SRCS=libev.cpp  RedisClient.cpp  RedisEvent.cpp  RedisHash.cpp  Util.cpp
+SRCS=$(wildcard *.cpp)
+
+
+libredis_client.a: $(SRCS:.cpp=.o)
 	$(AR) $(ARFLAGS) $@ $^
 
-# src client
 
-RedisClient.o: RedisClient.cpp RedisClient.h Util.h libev.h
-	$(CC) $(CCFLAGS) RedisClient.cpp
-
-RedisEvent.o: RedisEvent.cpp RedisEvent.h Util.h libev.h
-	$(CC) $(CCFLAGS) RedisEvent.cpp
+include $(SRCS:.cpp=.d)
 
 
-RedisHash.o: RedisHash.cpp RedisHash.h RedisEvent.h Util.h libev.h
-	$(CC) $(CCFLAGS) RedisHash.cpp
+%.d: %.cpp
+	set -e; rm -f $@; \
+	$(CC) -MM $(CCFLAGS) $< > $@.$$$$; \
+	echo "	\$$(CC) \$$(CCFLAGS) $<" >> $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
 
-Util.o: Util.cpp Util.h
-	$(CC) $(CCFLAGS) Util.cpp
-
-libev.o: libev.cpp libev.h RedisEvent.h Util.h
-	$(CC) $(CCFLAGS) libev.cpp
 
 
 
 .PHONY: clean cleanall
 clean:
-	rm -f *.o
+	rm -f *.o *.d *.d.*
 cleanall:
-	rm -f *.o libredis_client.a
+	rm -f *.o *.d *.d.* libredis_client.a
