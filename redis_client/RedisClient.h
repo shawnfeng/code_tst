@@ -16,12 +16,19 @@ class RedisClient {
 		    void (*log_d)(const char *),
 		    void (*log_i)(const char *),
 		    void (*log_w)(const char *),
-		    void (*log_e)(const char *)
+		    void (*log_e)(const char *),
+
+		    const char *zk_addr,
+		    const char *zk_path
 		    ) : log_(log_t, log_d, log_i, log_w, log_e),
-		re_(&log_), rcx_(&log_, &re_)
+		re_(&log_), rcx_(&log_, &re_, zk_addr, zk_path)
 		{}
 
-	void start() { re_.start(); }
+	void start()
+	{
+		re_.start();
+		rcx_.start();
+	}
 	void update_ends(std::vector< std::pair<std::string, int> > &ends) { rcx_.update_ends(ends); }
 	void cmd(const std::vector<std::string> &hash, const char *c, int timeout, std::vector<std::string> &rv);
 	void cmd(const std::vector<long> &hash, const char *c, int timeout, std::vector<std::string> &rv);

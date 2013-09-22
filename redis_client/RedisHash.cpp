@@ -1,5 +1,19 @@
 #include "RedisHash.h"
+
 using namespace std;
+
+int RedisHash::start()
+{
+	const char *fun = "RedisHash::start";
+	zhandle_t *zkh = zookeeper_init(zk_addr_.c_str(), NULL, 10000, 0, 0, 0);
+	if (!zkh) {
+		log_->error("%s-->error init zk %s", fun, zk_addr_.c_str());
+		return 1;
+	}
+
+	log_->info("%s-->init ok zk %s", fun, zk_addr_.c_str());
+	return 0;
+}
 
 void RedisHash::update_ends(const vector< pair<string, int> > &ends)
 {

@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include <stdint.h>
 
 
 class LogOut {
@@ -39,6 +40,22 @@ class LogOut {
 	void info(const char *format, ...) { LOGOUT_FMT_LOG(format, log_i_) }
 	void warn(const char *format, ...) { LOGOUT_FMT_LOG(format, log_w_) }
 	void error(const char *format, ...) { LOGOUT_FMT_LOG(format, log_e_) }
+
+
+	// just simple output stdout
+	static void log_trace(const char *log);
+	static void log_debug(const char *log);
+	static void log_info(const char *log);
+	static void log_warn(const char *log);
+	static void log_error(const char *log);
+
+
+ LogOut() : log_t_(LogOut::log_trace),
+		log_d_(LogOut::log_debug),
+		log_i_(LogOut::log_info),
+		log_w_(LogOut::log_warn),
+		log_e_(LogOut::log_error)
+	{}
 
 };
 
