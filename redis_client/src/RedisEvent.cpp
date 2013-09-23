@@ -11,28 +11,28 @@ struct cmd_arg_t {
 	vector<string> vs;
 };
 
-static void connectCallback(const redisAsyncContext *c, int status) {
+static void connect_cb(const redisAsyncContext *c, int status) {
 	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
 	//RedisEvent *rev = (RedisEvent *)re->data;
 
-	//rcx->log()->info("connectCallback c:%p", c);
+	//rcx->log()->info("connect_cb c:%p", c);
 
 	userdata_t *u = (userdata_t *)ev_userdata(EV_DEFAULT);
 	RedisEvent *rev = u->re();
 	assert(rev);
 
 	if (status != REDIS_OK) {
-		rev->log()->error("connectCallback c:%p %s", c, c->errstr);
+		rev->log()->error("connect_cb c:%p %s", c, c->errstr);
 		u->clear(re->addr);
 		return;
 	} else {
 		re->status = 1;
-		rev->log()->info("connectCallback c:%p ok", c);
+		rev->log()->info("connect_cb c:%p ok", c);
 	}
 
 }
 
-static void disconnectCallback(const redisAsyncContext *c, int status) {
+static void disconnect_cb(const redisAsyncContext *c, int status) {
 
 	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
 	//RedisEvent *rev = (RedisEvent *)re->data;
@@ -41,10 +41,10 @@ static void disconnectCallback(const redisAsyncContext *c, int status) {
 	assert(rev);
 
 	if (status != REDIS_OK) {
-		rev->log()->error("disconnectCallback c:%p %s", c, c->errstr);
+		rev->log()->error("disconnect_cb c:%p %s", c, c->errstr);
 		return;
 	} else {
-		rev->log()->info("disconnectCallback c:%p ok", c);
+		rev->log()->info("disconnect_cb c:%p ok", c);
 	}
 	u->clear(re->addr);
 }
@@ -171,8 +171,8 @@ void RedisEvent::connect(uint64_t addr)
 	ud_.insert(addr, c);
 
 	redisLibevAttach(loop_, c, addr);
-	redisAsyncSetConnectCallback(c, connectCallback);
-	redisAsyncSetDisconnectCallback(c, disconnectCallback);
+	redisAsyncSetConnectCallback(c, connect_cb);
+	redisAsyncSetDisconnectCallback(c, disconnect_cb);
 
 }
 
