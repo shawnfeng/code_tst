@@ -105,7 +105,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 		goto cond;
 	}
 
-	if (log) log->trace("redis_cmd_cb-->argv %s", reply->str);
+	log->trace("redis_cmd_cb-->argv %s", reply->str);
 
 	if (reply->str != NULL) {
 		vs.push_back(reply->str);
