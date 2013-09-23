@@ -80,10 +80,10 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	LogOut *log = u->re()->log();
 	assert(log);
 
-	if (log) log->trace("redis_cmd_cb-->cf=%p cf->f=%d cf->d=%p", cf, cf->f(), cf->d());
+	log->trace("redis_cmd_cb-->cf=%p cf->f=%d cf->d=%p", cf, cf->f(), cf->d());
 
 	if (cf->f() == 0 || cf->d() == NULL) {
-		if (log) log->trace("redis_cmd_cb-->cf->f=%d return", cf->f());
+		log->trace("redis_cmd_cb-->cf->f=%d return", cf->f());
 		return;
 	}
 
@@ -95,13 +95,13 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 
 
 	if (cf->d_f() == 0) {
-		if (log) log->trace("redis_cmd_cb-->reset 0 cf=%p cf->f=%d cf->d=%p", cf, cf->f(), cf->d());
+		log->trace("redis_cmd_cb-->reset 0 cf=%p cf->f=%d cf->d=%p", cf, cf->f(), cf->d());
 		cf->reset();
 	}
 
 	redisReply *reply = (redisReply *)r;
 	if (reply == NULL) {
-		if (log) log->trace("redis_cmd_cb-->reply null");
+		log->trace("redis_cmd_cb-->reply null");
 		goto cond;
 	}
 
@@ -116,7 +116,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	if (cf->f() == 0) {
 		boost::mutex::scoped_lock lock(carg->mux);
 		carg->cond.notify_one();
-		if (log) log->trace("redis_cmd_cb-->over cmd and notify_one");
+		log->trace("redis_cmd_cb-->over cmd and notify_one");
 	}
 
 }
