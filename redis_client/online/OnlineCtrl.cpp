@@ -45,7 +45,7 @@ void OnlineCtrl::online(long uid,
 
 
 	vector<string> hash;
-	vector<std::string> rv;
+	RedisRvs rv;
 	string data, sha1;
 	if (!check_sha1("/home/code/code_tst/redis_client/online/online.lua", data, sha1)) {
 		g_log.error("error check sha1");
@@ -54,13 +54,13 @@ void OnlineCtrl::online(long uid,
 	g_log.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 
 	//rc_.cmd(rv, hash, 100, "SCRIPT LOAD %s", data.c_str());
-	//rc_.cmd(rv, hash, 100, "EVAL %s %d %s %s", data.c_str(), 2, "t0", "t1");
-	rc_.cmd(rv, hash, 100, "EVALSHA %s %d %s %s", sha1.c_str(), 2, "t0", "t1");
+	rc_.cmd(rv, hash, 100, "EVAL %s %d %s %s", data.c_str(), 2, "t0", "t1");
+	//rc_.cmd(rv, hash, 100, "EVALSHA %s %d %s %s", sha1.c_str(), 2, "t0", "t1");
 
 
 
-	for (vector<string>::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		g_log.debug("=== %s ===", it->c_str());
+	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
+		g_log.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
 	}
 
 

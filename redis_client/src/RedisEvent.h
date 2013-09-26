@@ -71,6 +71,16 @@ class ReqCount {
 	int cn() { return cn_; }
 };
 
+struct RedisRv {
+    int type; /* REDIS_REPLY_* */
+    long long integer; /* The integer when type is REDIS_REPLY_INTEGER */
+    int len; /* Length of string */
+    std::string str; /* Used for both REDIS_REPLY_ERROR and REDIS_REPLY_STRING */
+};
+
+typedef std::vector<RedisRv> RedisRvs;
+
+
 
 class RedisEvent {
  private:
@@ -104,7 +114,7 @@ class RedisEvent {
 	LogOut *log() { return log_; }
 
 	//void cmd(std::set<uint64_t> &addrs, const char *cs, int timeout, std::vector<std::string> &rv);
-	void cmd(std::vector<std::string> &rv, std::set<uint64_t> &addrs, int timeout, const char *format, va_list ap);
+	void cmd(RedisRvs &rv, std::set<uint64_t> &addrs, int timeout, const char *format, va_list ap);
 	struct ev_loop *loop() { return loop_; }
 
 };

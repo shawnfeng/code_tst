@@ -1,4 +1,4 @@
-all: base_lib online test
+all: base_lib online
 
 base_lib:
 	cd src && $(MAKE)

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void RedisClient::cmd(std::vector<std::string> &rv, const std::vector<std::string> &hash, int timeout, const char *format, ...)
+void RedisClient::cmd(RedisRvs &rv, const std::vector<std::string> &hash, int timeout, const char *format, ...)
 {
 	set<uint64_t> addrs;
 	rcx_.hash_addr(hash, addrs);

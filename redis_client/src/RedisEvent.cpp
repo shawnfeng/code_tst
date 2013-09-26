@@ -8,7 +8,9 @@ struct cmd_arg_t {
 	boost::mutex mux;
 	boost::condition_variable cond;
 
-	vector<string> vs;
+	RedisRvs *rv;
+
+	cmd_arg_t(RedisRvs *r) : rv(r) {}
 };
 
 static void connect_cb(const redisAsyncContext *c, int status) {
@@ -91,7 +93,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	// check ok, can use cf->d() pointer
 	cmd_arg_t *carg = (cmd_arg_t *)cf->d();
 	assert(carg);
-	vector<string> &vs = carg->vs;
+	RedisRvs &rv = *carg->rv;
 
 
 	if (cf->d_f() == 0) {
@@ -101,16 +103,26 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 
 	redisReply *reply = (redisReply *)r;
 	if (reply == NULL) {
-		log->trace("redis_cmd_cb-->reply null");
+		log->error("redis_cmd_cb-->reply null");
 		goto cond;
 	}
 
 	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu",
 		   reply->type, reply->integer, reply->len, reply->str, reply->elements);
 
-	if (reply->str != NULL) {
-		vs.push_back(reply->str);
+	if (0 == reply->elements) {
+		RedisRv r;
+		r.type = reply->type;
+		r.integer = reply->integer;
+		r.len = reply->len;
+
+		rv.push_back(r);
+		if (reply->str != NULL) {
+			rv.back().str.assign(reply->str, reply->len); 
+		}
+
 	}
+
 
 	//sleep(2);
  cond:
@@ -177,7 +189,7 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(std::vector<std::string> &rv, set<uint64_t> &addrs, int timeout, const char *format, va_list ap)
+void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, const char *format, va_list ap)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
@@ -191,7 +203,7 @@ void RedisEvent::cmd(std::vector<std::string> &rv, set<uint64_t> &addrs, int tim
 
 	userdata_t *u = &ud_;
 
-	cmd_arg_t carg;
+	cmd_arg_t carg(&rv);
 	cflag_t *cf = NULL;
 
 
@@ -261,7 +273,7 @@ void RedisEvent::cmd(std::vector<std::string> &rv, set<uint64_t> &addrs, int tim
 
 	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, format);
 
-	rv.swap(carg.vs);
+	//rv.swap(carg.vs);
 
 }
 
