@@ -105,7 +105,8 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 		goto cond;
 	}
 
-	log->trace("redis_cmd_cb-->argv %s", reply->str);
+	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu",
+		   reply->type, reply->integer, reply->len, reply->str, reply->elements);
 
 	if (reply->str != NULL) {
 		vs.push_back(reply->str);
@@ -176,15 +177,15 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout, std::vector<std::string> &rv)
+void RedisEvent::cmd(std::vector<std::string> &rv, set<uint64_t> &addrs, int timeout, const char *format, va_list ap)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
 	ReqCount rcount(req_count_);
 
-	log_->debug("%s-->size:%lu cmd:%s rcount=%d", fun, addrs.size(), cs, rcount.cn());
+	log_->debug("%s-->size:%lu cmd:%s rcount=%d", fun, addrs.size(), format, rcount.cn());
 	if (addrs.empty()) {
-		log_->warn("%s-->empty redis context cmd:%s", fun, cs);
+		log_->warn("%s-->empty redis context cmd:%s", fun, format);
 		return;
 	}
 
@@ -214,8 +215,12 @@ void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout, std::vec
 			redisLibevEvents *rd = (redisLibevEvents *)c->ev.data;
 			assert(rd);
 			log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
-			if (1 == rd->status) {
-				redisAsyncCommand(c, redis_cmd_cb, cf, cs);
+			if (1 == rd->status) {				
+				//redisAsyncCommand(c, redis_cmd_cb, cf, format, ap);
+				redisvAsyncCommand(c, redis_cmd_cb, cf, format, ap);
+
+				//redisAsyncCommand(c, redis_cmd_cb, cf, "SET %s %s", "foo", "hello world");
+
 				wsz++;
 			} else {
 				log_->warn("%s-->connection is not ready c:%p", fun, c);
@@ -250,11 +255,11 @@ void RedisEvent::cmd(set<uint64_t> &addrs, const char *cs, int timeout, std::vec
 	}
 	// log out free lock
 	if (is_timeout) {
-		log_->warn("%s-->timeout cs:%s", fun, cs);
+		log_->warn("%s-->timeout format:%s", fun, format);
 	}
 
 
-	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, cs);
+	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, format);
 
 	rv.swap(carg.vs);
 

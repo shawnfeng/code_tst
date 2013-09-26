@@ -1,7 +1,11 @@
-all: base_lib test
+all: base_lib online test
 
 base_lib:
 	cd src && $(MAKE)
+
+online: base_lib
+	cd online && $(MAKE)
+
 
 test: base_lib
 	cd test && $(MAKE)
@@ -12,6 +16,8 @@ test: base_lib
 clean:
 	cd src && $(MAKE) $@
 	cd test && $(MAKE) $@
+	cd online && $(MAKE) $@
 cleanall:
 	cd src && $(MAKE) $@
 	cd test && $(MAKE) $@
+	cd online && $(MAKE) $@
