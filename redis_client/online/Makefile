@@ -14,4 +14,4 @@ OnlineCtrl.o: OnlineCtrl.cpp OnlineCtrl.h
 clean:
 	rm -f *.o
 cleanall:
-	rm -f *.o
+	rm -f *.o test_online

@@ -58,7 +58,7 @@ void OnlineCtrl::online(long uid,
 	//rc_.cmd(rv, hash, 100, "EVALSHA %s %d %s %s", sha1.c_str(), 2, "t0", "t1");
 
 
-
+	g_log.debug("@@rv.size:%lu", rv.size());
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
 		g_log.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
 	}

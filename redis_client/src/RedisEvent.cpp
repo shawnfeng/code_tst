@@ -70,6 +70,37 @@ static void l_acquire (EV_P)
 	u->re()->lock();
 }
 
+static void redisrp_redisrvs(redisReply *reply, RedisRvs &rv)
+{
+	if (!reply) return;
+
+	redisReply *rp = NULL;
+	int ele = reply->elements;
+	struct redisReply **eles = reply->element;
+	do {
+
+		if (0 == ele ) {
+			rp = reply;
+		} else {
+			rp = *eles++;
+		}
+
+		RedisRv r;
+		r.type = rp->type;
+		r.integer = rp->integer;
+		r.len = rp->len;
+
+		rv.push_back(r);
+		if (rp->str != NULL) {
+			rv.back().str.assign(rp->str, rp->len); 
+		}
+
+		// 暂时不支持嵌套结构的返回
+	} while (--ele > 0);
+
+
+}
+
 
 static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 {
@@ -107,21 +138,10 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 		goto cond;
 	}
 
-	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu",
-		   reply->type, reply->integer, reply->len, reply->str, reply->elements);
+	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu ep:%p",
+		   reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
-	if (0 == reply->elements) {
-		RedisRv r;
-		r.type = reply->type;
-		r.integer = reply->integer;
-		r.len = reply->len;
-
-		rv.push_back(r);
-		if (reply->str != NULL) {
-			rv.back().str.assign(reply->str, reply->len); 
-		}
-
-	}
+	redisrp_redisrvs(reply, rv);
 
 
 	//sleep(2);
