@@ -1,19 +1,39 @@
+#include <openssl/sha.h>
+
 #include "OnlineCtrl.h"
 
 using namespace std;
-/*
-const char *tst = "eval \"local uid = KEYS[1]\n\
-local session = KEYS[2]\n\
-return uid..session\n\" 2 t0 t1";
-*/
-//const char *tst = "eval \"return 1\" 0";
-//const char *tst = "eval \"return 'hello'\" 0";
-//const char *tst = "SCRIPT LOAD \"return 'hello moto'\"";
-const char *tst = "EVALSHA '232fd51614574cf0867b83d384a5e898cfd24e5a' 0";
-//const char *tst = "eval \"return redis.call('GET', 'key0')\" 0";
-//const char *tst = "eval \"return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}\" 2 key1 key2 first second";
 
-//const char *tst = "GET key0";
+static bool check_sha1(const char *path, string &data, string &sha1)
+{
+	char buf[512];
+	SHA_CTX s;
+	unsigned char hash[20];
+
+	FILE *fp = fopen(path,"rb");
+	if (!fp) return false;
+
+	SHA1_Init(&s);
+	int size;
+	while ((size=fread(buf, sizeof(char), sizeof(buf), fp)) > 0) {
+		SHA1_Update(&s, buf, size);
+		data.append(buf, size);
+	} 
+	SHA1_Final(hash, &s);
+	fclose(fp);
+
+	sha1.clear();
+	char tmp[10] = {0};
+	for (int i=0; i < 20; i++) {
+		sprintf (tmp, "%.2x", (int)hash[i]);
+		sha1 += tmp;
+	}
+
+	return true;
+ 
+}
+
+
 
 static LogOut g_log;
 
@@ -26,12 +46,18 @@ void OnlineCtrl::online(long uid,
 
 	vector<string> hash;
 	vector<std::string> rv;
-	//rc_.cmd(rv, hash, 100, "EVAL  %s %d", "return 'hello'", 0);
-	rc_.cmd(rv, hash, 100, "EVAL  %s %d %s", "return redis.call('get', KEYS[1])", 1, "key0");
-	//rc_.cmd(rv, hash, 100, "EVAL %s %d", "232fd51614574cf0867b83d384a5e898cfd24e5a", 0);
-	//rc_.cmd(rv, hash, 100, "GET key0");
-	//rc_.cmd(rv, hash, 100, "GET %b", "key0", 4);
-	//rc_.cmd(rv, hash, 100, "SET %s %s", "foo", "hello world");
+	string data, sha1;
+	if (!check_sha1("/home/code/code_tst/redis_client/online/online.lua", data, sha1)) {
+		g_log.error("error check sha1");
+	}
+
+	g_log.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
+
+	//rc_.cmd(rv, hash, 100, "SCRIPT LOAD %s", data.c_str());
+	//rc_.cmd(rv, hash, 100, "EVAL %s %d %s %s", data.c_str(), 2, "t0", "t1");
+	rc_.cmd(rv, hash, 100, "EVALSHA %s %d %s %s", sha1.c_str(), 2, "t0", "t1");
+
+
 
 	for (vector<string>::const_iterator it = rv.begin(); it != rv.end(); ++it) {
 		g_log.debug("=== %s ===", it->c_str());

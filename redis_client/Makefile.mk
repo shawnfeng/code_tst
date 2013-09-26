@@ -13,7 +13,7 @@ RPATH_EV=$(EVPATH)/lib
 RPATH_HIREDIS=$(HIREDIS_PATH)
 PATH_ZK=/home/code/rp/zookeeper/lib
 
-LINK_FLAG=-lboost_thread
+LINK_FLAG=-lboost_thread -lcrypto
 LINK_FLAG:=$(LINK_FLAG) -L$(RPATH_EV) -lev -Wl,-rpath,$(PATH_EV)
 LINK_FLAG:=$(LINK_FLAG) -L$(RPATH_HIREDIS) -lhiredis -Wl,-rpath,$(RPATH_HIREDIS)
 LINK_FLAG:=$(LINK_FLAG) -L$(PATH_ZK) -lzookeeper_mt -Wl,-rpath,$(PATH_ZK)
