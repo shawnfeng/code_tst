@@ -13,7 +13,7 @@ int main (int argc, char **argv)
 	OnlineCtrl oc(LogOut::log_trace, LogOut::log_debug, LogOut::log_info, LogOut::log_warn, LogOut::log_error,
                 "/data/home/guangxiang.feng/code_tst/redis_client/script");
 
-	long uid = 100;
+	long uid = 1000;
 	string session = "fuck2";
 	vector<string> kvs;
 	kvs.push_back("k3");
@@ -25,7 +25,7 @@ int main (int argc, char **argv)
 	g_log.debug("=================");
 	sleep(1);
 	oc.online(uid, session, kvs);
-	//oc.offline(uid, session);
+	oc.offline(uid, session);
 
 	pause();
 	

@@ -82,23 +82,23 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 	vector<string> hash;
 	RedisRvs rv;
 	string data, sha1;
-
+  // !!!!!!!!!!load 需要优化！！
   string path = sp_ + "/offline.lua";
 	if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
 	}
-	log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
+	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
 
   vector<string> args;
-  args.push_back("EVAL");
-  args.push_back(data);
+  args.push_back("EVALSHA");
+  args.push_back(sha1);
 
   args.push_back("2");
   args.push_back(boost::lexical_cast<string>(uid));
   args.push_back(session);
 
-  rc_.cmd(rv, hash, timeout, args);
+  rc_.cmd(rv, hash, timeout, args, data);
 
 
 
@@ -147,8 +147,8 @@ void OnlineCtrl::online(long uid,
 	}
   
   vector<string> args;
-  args.push_back("EVAL");
-  args.push_back(data);
+  args.push_back("EVALSHA");
+  args.push_back(sha1);
 
   args.push_back("3");
   args.push_back(boost::lexical_cast<string>(uid));
@@ -160,7 +160,7 @@ void OnlineCtrl::online(long uid,
 
   args.insert(args.end(), kvs.begin(), kvs.end());
 
-  rc_.cmd(rv, hash, timeout, args);
+  rc_.cmd(rv, hash, timeout, args, data);
 
 
 

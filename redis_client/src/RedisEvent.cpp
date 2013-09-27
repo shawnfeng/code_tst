@@ -9,7 +9,7 @@ struct cmd_arg_t {
 	boost::condition_variable cond;
 
 	RedisRvs *rv;
-
+  map<uint64_t, RedisRv> err;
 	cmd_arg_t(RedisRvs *r) : rv(r) {}
 };
 
@@ -104,6 +104,7 @@ static void redisrp_redisrvs(redisReply *reply, RedisRvs &rv)
 
 static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 {
+	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
 	// this point must alloc
 	cflag_t *cf = (cflag_t *)data;
 	assert(cf);
@@ -125,6 +126,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	cmd_arg_t *carg = (cmd_arg_t *)cf->d();
 	assert(carg);
 	RedisRvs &rv = *carg->rv;
+  map<uint64_t, RedisRv> &err = carg->err;
 
 
 	if (cf->d_f() == 0) {
@@ -141,8 +143,18 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu ep:%p",
 		   reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
-	redisrp_redisrvs(reply, rv);
-
+  if (reply->type != REDIS_REPLY_ERROR) {
+    redisrp_redisrvs(reply, rv);
+  } else {
+		RedisRv e;
+		e.type = reply->type;
+		e.integer = reply->integer;
+		e.len = reply->len;
+    if (reply->str) {
+      e.str.assign(reply->str, reply->len); 
+    }
+    err[re->addr] = e;
+  }
 
 	//sleep(2);
  cond:
@@ -209,7 +221,10 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, int argc, const char **argv, const size_t *argvlen)
+void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
+                     int timeout, int argc, const char **argv, size_t *argvlen,
+                     const string &lua_code
+                     )
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
@@ -290,7 +305,35 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, int argc, 
 
 	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%d", fun, addrs.size(), wsz, is_timeout, argc);
 
-	//rv.swap(carg.vs);
+  // first load script
+  if (argc >= 2
+      && !lua_code.empty()
+      && !carg.err.empty()
+      && !strncmp(argv[0], "EVALSHA", 7)
+      ) {
+
+    argv[0] = "EVAL";
+    argv[1] = lua_code.c_str();
+    if (argvlen) {
+      argvlen[0] = 4;
+      argvlen[1] = lua_code.size();
+    }
+
+    set<uint64_t> erraddrs;
+    for (map<uint64_t, RedisRv>::const_iterator it = carg.err.begin();
+         it != carg.err.end();
+         ++it) {
+      if (!strncmp(it->second.str.c_str(), "NOSCRIPT", 8)) {
+
+        log_->warn("%s-->%lu first load  script:%s", fun, it->first, lua_code.c_str());
+        erraddrs.insert(it->first);
+
+      }
+
+    }
+    
+    cmd(rv, erraddrs, timeout, argc, argv, argvlen, "");
+  }
 
 }
 
