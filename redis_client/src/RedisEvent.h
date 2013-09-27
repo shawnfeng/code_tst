@@ -114,7 +114,7 @@ class RedisEvent {
 	LogOut *log() { return log_; }
 
 	//void cmd(std::set<uint64_t> &addrs, const char *cs, int timeout, std::vector<std::string> &rv);
-	void cmd(RedisRvs &rv, std::set<uint64_t> &addrs, int timeout, const char *format, va_list ap);
+	void cmd(RedisRvs &rv, std::set<uint64_t> &addrs, int timeout, int argc, const char **argv, const size_t *argvlen);
 	struct ev_loop *loop() { return loop_; }
 
 };

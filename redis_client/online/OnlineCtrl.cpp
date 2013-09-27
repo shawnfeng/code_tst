@@ -1,5 +1,7 @@
 #include <openssl/sha.h>
 
+#include <boost/lexical_cast.hpp>
+
 #include "OnlineCtrl.h"
 
 using namespace std;
@@ -32,7 +34,7 @@ static bool check_sha1(const char *path, string &data, string &sha1)
 	return true;
  
 }
-
+/*
 // !!! add error log
 static void rc_cmd2(RedisClient &rc, const vector<string> &hash, int timeout,
 		    const char *sha1, const char *sp,
@@ -72,6 +74,8 @@ static rc_eval_cmd rc_eval_cmd_vc[] = {
 	rc_cmd2,
 	rc_cmd4,
 };
+*/
+
 
 void OnlineCtrl::offline(long uid, const std::string &session)
 {
@@ -86,10 +90,23 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 	log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
 
+  vector<string> args;
+  args.push_back("EVAL");
+  args.push_back(data);
+
+  args.push_back("2");
+  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(session);
+
+  rc_.cmd(rv, hash, timeout, args);
+
+
+
+  /*
 	rc_.cmd(rv, hash, timeout, "EVAL %s %d %d %s",
 		data.c_str(), 2, uid, session.c_str()
 		);
-
+  */
 	log_.debug("****@@rv.size:%lu", rv.size());
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
 		log_.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
@@ -118,13 +135,9 @@ void OnlineCtrl::online(long uid,
 	int timeout = 100;
 	int stamp = time(NULL);
 
-
 	//rc_.cmd(rv, hash, 100, "SCRIPT LOAD %s", data.c_str());
 	//rc_.cmd(rv, hash, 100, "EVAL %s %d %s %s %d", data.c_str(), 3, "t0", "t1", stamp);
 	//rc_.cmd(rv, hash, 100, "EVALSHA %s %d %s %s", sha1.c_str(), 2, "t0", "t1");
-	//const size_t sz = kvs.size();
-	//if (0 == sz) {
-
 
 	size_t sz = kvs.size();
 
@@ -132,6 +145,26 @@ void OnlineCtrl::online(long uid,
 		log_.error("kvs % 2 0 size:%lu", sz);
 		return;
 	}
+  
+  vector<string> args;
+  args.push_back("EVAL");
+  args.push_back(data);
+
+  args.push_back("3");
+  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(session);
+  args.push_back(boost::lexical_cast<string>(stamp));
+
+  args.push_back("k0");
+  args.push_back("v0");
+
+  args.insert(args.end(), kvs.begin(), kvs.end());
+
+  rc_.cmd(rv, hash, timeout, args);
+
+
+
+  /*
 
 	--sz /= 2;
 	log_.trace("index:%lu", sz);
@@ -140,12 +173,13 @@ void OnlineCtrl::online(long uid,
 		return;
 	}
 
+
 	rc_eval_cmd_vc[sz](rc_, hash, timeout,
 		       sha1.c_str(), data.c_str(),
 		       uid, session.c_str(), stamp, kvs,
 		       rv);
 		
-
+  */
 	log_.debug("@@rv.size:%lu", rv.size());
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
 		log_.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());

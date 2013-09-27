@@ -209,15 +209,15 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, const char *format, va_list ap)
+void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, int argc, const char **argv, const size_t *argvlen)
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
 	ReqCount rcount(req_count_);
 
-	log_->debug("%s-->size:%lu cmd:%s rcount=%d", fun, addrs.size(), format, rcount.cn());
+	log_->debug("%s-->size:%lu cmd:%d rcount=%d", fun, addrs.size(), argc, rcount.cn());
 	if (addrs.empty()) {
-		log_->warn("%s-->empty redis context cmd:%s", fun, format);
+		log_->warn("%s-->empty redis context cmd:%d", fun, argc);
 		return;
 	}
 
@@ -248,7 +248,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, const char
 			assert(rd);
 			log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
 			if (1 == rd->status) {				
-				redisvAsyncCommand(c, redis_cmd_cb, cf, format, ap);
+				redisAsyncCommandArgv(c, redis_cmd_cb, cf, argc, argv, argvlen);
 				//redisAsyncCommand(c, redis_cmd_cb, cf, "SET %s %s", "foo", "hello world");
 				wsz++;
 			} else {
@@ -284,11 +284,11 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, const char
 	}
 	// log out free lock
 	if (is_timeout) {
-		log_->warn("%s-->timeout format:%s", fun, format);
+		log_->warn("%s-->timeout format:%d", fun, argc);
 	}
 
 
-	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%s", fun, addrs.size(), wsz, is_timeout, format);
+	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%d", fun, addrs.size(), wsz, is_timeout, argc);
 
 	//rv.swap(carg.vs);
 
