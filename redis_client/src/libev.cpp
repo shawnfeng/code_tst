@@ -80,8 +80,8 @@ static void redisLibevCleanup(void *privdata) {
 	re->log()->trace("libev::redisLibevCleanup-->c:%p e:%p e2:%p addr:%ld\n", context, e, context->ev.data, e->addr);
 	redisLibevDelRead(privdata);
 	redisLibevDelWrite(privdata);
-	free(e);
-	context->ev.data = NULL;
+	//free(e);
+	//context->ev.data = NULL;
 }
 
 int redisLibevAttach(EV_P_ redisAsyncContext *ac, uint64_t addr) {

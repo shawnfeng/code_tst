@@ -23,7 +23,7 @@ int main (int argc, char **argv)
 	sleep(1);
 	oc.online(uid, session, kvs);
 	g_log.debug("=================");
-	sleep(1);
+	sleep(20);
 	oc.online(uid, session, kvs);
 	oc.offline(uid, session);
 

@@ -36,7 +36,7 @@ static void connect_cb(const redisAsyncContext *c, int status) {
 
 static void disconnect_cb(const redisAsyncContext *c, int status) {
 
-	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
+
 	//RedisEvent *rev = (RedisEvent *)re->data;
 	userdata_t *u = (userdata_t *)ev_userdata(EV_DEFAULT);
 	RedisEvent *rev = u->re();
@@ -44,11 +44,18 @@ static void disconnect_cb(const redisAsyncContext *c, int status) {
 
 	if (status != REDIS_OK) {
 		rev->log()->error("disconnect_cb c:%p %s", c, c->errstr);
-		return;
 	} else {
 		rev->log()->info("disconnect_cb c:%p ok", c);
 	}
+
+	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
+  assert(re);
 	u->clear(re->addr);
+
+  free(re);
+
+  redisAsyncContext *context = (redisAsyncContext *)c;
+  context->ev.data = NULL;
 }
 
 
