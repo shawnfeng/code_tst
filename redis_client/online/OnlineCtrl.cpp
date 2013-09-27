@@ -78,7 +78,9 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 	vector<string> hash;
 	RedisRvs rv;
 	string data, sha1;
-	if (!check_sha1("/home/code/code_tst/redis_client/online/offline.lua", data, sha1)) {
+
+  string path = sp_ + "/offline.lua";
+	if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
 	}
 	log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
@@ -106,7 +108,9 @@ void OnlineCtrl::online(long uid,
 	vector<string> hash;
 	RedisRvs rv;
 	string data, sha1;
-	if (!check_sha1("/home/code/code_tst/redis_client/online/online.lua", data, sha1)) {
+
+  string path = sp_ + "/online.lua";
+  if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
 	}
 
@@ -151,39 +155,4 @@ void OnlineCtrl::online(long uid,
 }
 
 
-
-int main (int argc, char **argv)
-{
-	LogOut g_log;
-	g_log.debug("%u", sizeof(int));
-	g_log.debug("%u", sizeof(long));
-	g_log.debug("%u", sizeof(long long));
-	g_log.debug("%u", sizeof(long long int));
-
-
-	OnlineCtrl oc;
-
-	long uid = 0;
-	string session = "fuck";
-	vector<string> kvs;
-	kvs.push_back("k3");
-	kvs.push_back("v3");
-
-
-	sleep(1);
-	oc.online(uid, session, kvs);
-	g_log.debug("=================");
-	sleep(1);
-	oc.online(uid, session, kvs);
-	oc.offline(uid, session);
-
-	pause();
-	
-
-	return 0;
-}
-
-
-// rc_cmd add error log
-// 
 

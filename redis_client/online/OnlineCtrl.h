@@ -3,17 +3,26 @@
 
 #include <string>
 
-#include <RedisClient.h>
+#include "../src/RedisClient.h"
 
 class OnlineCtrl {
 	LogOut log_;
+  std::string sp_;
 	RedisClient rc_;
 
 
  public:
- OnlineCtrl() : log_(LogOut::log_trace, LogOut::log_debug, LogOut::log_info, LogOut::log_warn, LogOut::log_error),
-		rc_(LogOut::log_trace, LogOut::log_debug, LogOut::log_info, LogOut::log_warn, LogOut::log_error,
-		    "127.0.0.1:4180,127.0.0.1:4181,127.0.0.1:4182",
+ OnlineCtrl(void (*log_t)(const char *),
+            void (*log_d)(const char *),
+            void (*log_i)(const char *),
+            void (*log_w)(const char *),
+            void (*log_e)(const char *),
+
+            const char *path
+            ) : log_(log_t, log_d, log_i, log_w, log_e),
+    sp_(path),
+		rc_(log_t, log_d, log_i, log_w, log_e,
+		    "10.2.72.57:4180,10.2.72.57:4181,10.2.72.57:4182",
 		    "/tx/online/legal_nodes"
 		    ) { rc_.start(); }
 
