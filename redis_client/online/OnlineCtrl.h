@@ -19,6 +19,7 @@ class OnlineCtrl {
 
 
 	void online(long uid, const std::string &session, const std::vector<std::string> &kvs);
+	void offline(long uid, const std::string &session);
 
 };
 

@@ -73,6 +73,29 @@ static rc_eval_cmd rc_eval_cmd_vc[] = {
 	rc_cmd4,
 };
 
+void OnlineCtrl::offline(long uid, const std::string &session)
+{
+	vector<string> hash;
+	RedisRvs rv;
+	string data, sha1;
+	if (!check_sha1("/home/code/code_tst/redis_client/online/offline.lua", data, sha1)) {
+		log_.error("error check sha1");
+	}
+	log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
+	int timeout = 100;
+
+	rc_.cmd(rv, hash, timeout, "EVAL %s %d %d %s",
+		data.c_str(), 2, uid, session.c_str()
+		);
+
+	log_.debug("****@@rv.size:%lu", rv.size());
+	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
+		log_.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
+	}
+
+
+}
+
 
 void OnlineCtrl::online(long uid,
 			const string &session,
@@ -152,6 +175,7 @@ int main (int argc, char **argv)
 	g_log.debug("=================");
 	sleep(1);
 	oc.online(uid, session, kvs);
+	oc.offline(uid, session);
 
 	pause();
 	

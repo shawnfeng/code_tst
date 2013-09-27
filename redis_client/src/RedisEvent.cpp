@@ -248,11 +248,8 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs, int timeout, const char
 			assert(rd);
 			log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
 			if (1 == rd->status) {				
-				//redisAsyncCommand(c, redis_cmd_cb, cf, format, ap);
 				redisvAsyncCommand(c, redis_cmd_cb, cf, format, ap);
-
 				//redisAsyncCommand(c, redis_cmd_cb, cf, "SET %s %s", "foo", "hello world");
-
 				wsz++;
 			} else {
 				log_->warn("%s-->connection is not ready c:%p", fun, c);
