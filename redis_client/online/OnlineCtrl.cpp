@@ -6,6 +6,9 @@
 
 using namespace std;
 
+static const char *online_ope = "/online.lua";
+static const char *offline_ope = "/offline.lua";
+
 static bool check_sha1(const char *path, string &data, string &sha1)
 {
 	char buf[512];
@@ -83,7 +86,7 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 	RedisRvs rv;
 	string data, sha1;
   // !!!!!!!!!!load 需要优化！！
-  string path = sp_ + "/offline.lua";
+  string path = sp_ + offline_ope;
 	if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
 	}
@@ -126,7 +129,7 @@ void OnlineCtrl::online(long uid,
 	RedisRvs rv;
 	string data, sha1;
 
-  string path = sp_ + "/online.lua";
+  string path = sp_ + online_ope;
   if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
 	}
