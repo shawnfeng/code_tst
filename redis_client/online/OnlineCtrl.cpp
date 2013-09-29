@@ -8,6 +8,9 @@ using namespace std;
 
 static const char *online_ope = "/online.lua";
 static const char *offline_ope = "/offline.lua";
+static const char *get_session_info_ope = "/get_session_info.lua";
+static const char *get_session_ope = "/get_session_ope.lua";
+
 
 static bool check_sha1(const char *path, string &data, string &sha1)
 {
@@ -37,51 +40,11 @@ static bool check_sha1(const char *path, string &data, string &sha1)
 	return true;
  
 }
-/*
-// !!! add error log
-static void rc_cmd2(RedisClient &rc, const vector<string> &hash, int timeout,
-		    const char *sha1, const char *sp,
-		    long uid, const char *session, int stamp, const vector<string> &kvs,
-		    RedisRvs &rv)
-{
-	if (kvs.size() != 2) return;
-
-	rc.cmd(rv, hash, timeout, "EVAL %s %d %d %s %d %s %s",
-	       sp, 3, uid, session, stamp,
-	       kvs[0].c_str(), kvs[1].c_str()
-	       );
-	
-}
-
-static void rc_cmd4(RedisClient &rc, const vector<string> &hash, int timeout,
-		    const char *sha1, const char *sp,
-		    long uid, const char *session, int stamp, const vector<string> &kvs,
-		    RedisRvs &rv)
-{
-	if (kvs.size() != 4) return;
-
-	rc.cmd(rv, hash, timeout, "EVAL %s %d %d %s %d %s %s %s %s",
-	       sp, 3, uid, session, stamp,
-	       kvs[0].c_str(), kvs[1].c_str(),
-	       kvs[2].c_str(), kvs[3].c_str()
-	       );
-	
-}
-
-typedef void (*rc_eval_cmd)(RedisClient &rc, const vector<string> &hash, int timeout,
-			    const char *sha1, const char *sp,
-			    long uid, const char *session, int stamp, const vector<string> &kvs,
-			    RedisRvs &rv);
-
-static rc_eval_cmd rc_eval_cmd_vc[] = {
-	rc_cmd2,
-	rc_cmd4,
-};
-*/
 
 
 void OnlineCtrl::offline(long uid, const std::string &session)
 {
+  const char *fun = "OnlineCtrl::offline";
 	vector<string> hash;
 	RedisRvs rv;
 	string data, sha1;
@@ -103,16 +66,11 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 
   rc_.cmd(rv, hash, timeout, args, data);
 
-
-
-  /*
-	rc_.cmd(rv, hash, timeout, "EVAL %s %d %d %s",
-		data.c_str(), 2, uid, session.c_str()
-		);
-  */
-	log_.debug("****@@rv.size:%lu", rv.size());
+	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
+		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+
 	}
 
 
@@ -123,7 +81,7 @@ void OnlineCtrl::online(long uid,
 			const string &session,
 			const vector<string> &kvs)
 {
-
+  const char *fun = "OnlineCtrl::online";
 
 	vector<string> hash;
 	RedisRvs rv;
@@ -158,38 +116,91 @@ void OnlineCtrl::online(long uid,
   args.push_back(session);
   args.push_back(boost::lexical_cast<string>(stamp));
 
-  args.push_back("k0");
-  args.push_back("v0");
-
   args.insert(args.end(), kvs.begin(), kvs.end());
 
   rc_.cmd(rv, hash, timeout, args, data);
 
-
-
-  /*
-
-	--sz /= 2;
-	log_.trace("index:%lu", sz);
-	if (sz >= sizeof(rc_eval_cmd_vc)/sizeof(rc_eval_cmd_vc[0])) {
-		log_.error("bigsize size:%lu", sz);
-		return;
-	}
-
-
-	rc_eval_cmd_vc[sz](rc_, hash, timeout,
-		       sha1.c_str(), data.c_str(),
-		       uid, session.c_str(), stamp, kvs,
-		       rv);
-		
-  */
-	log_.debug("@@rv.size:%lu", rv.size());
+	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.debug("@@type:%d,int:%ld,len:%d,str:%s", it->type, it->integer, it->len, it->str.c_str());
+		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+
 	}
 
 
 }
 
+void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
+{
+  const char *fun = "OnlineCtrl::get_sessions";
+	vector<string> hash;
+	RedisRvs rv;
+	string data, sha1;
+
+  string path = sp_ + get_session_ope;
+  if (!check_sha1(path.c_str(), data, sha1)) {
+		log_.error("error check sha1");
+	}
+
+	int timeout = 100;
+
+  vector<string> args;
+  args.push_back("EVALSHA");
+  args.push_back(sha1);
+
+  args.push_back("1");
+  args.push_back(boost::lexical_cast<string>(uid));
+
+  rc_.cmd(rv, hash, timeout, args, data);
+
+	log_.debug("%s-->uid:%ld rv.size:%lu", fun, uid, rv.size());
+	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
+		log_.trace("%s-->uid:%ld type:%d,int:%ld,len:%d,str:%s",
+               fun, uid, it->type, it->integer, it->len, it->str.c_str());
+
+    if (it->type == REDIS_REPLY_STRING) {
+      sessions.push_back(it->str);
+    }
+	}
+
+}
+
+
+void OnlineCtrl::get_session_info(long uid, const string &session, const vector<string> &ks,
+                                  map<string, string> &kvs)
+{
+  const char *fun = "OnlineCtrl::get_session_info";
+
+	vector<string> hash;
+	RedisRvs rv;
+	string data, sha1;
+
+  string path = sp_ + get_session_info_ope;
+  if (!check_sha1(path.c_str(), data, sha1)) {
+		log_.error("error check sha1");
+	}
+
+	int timeout = 100;
+
+  vector<string> args;
+  args.push_back("EVALSHA");
+  args.push_back(sha1);
+
+  args.push_back("2");
+  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(session);
+
+  args.insert(args.end(), ks.begin(), ks.end());
+
+  rc_.cmd(rv, hash, timeout, args, data);
+
+	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
+	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
+		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+
+	}
+
+}
 
 

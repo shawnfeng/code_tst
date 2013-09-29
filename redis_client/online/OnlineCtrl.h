@@ -29,6 +29,9 @@ class OnlineCtrl {
 
 	void online(long uid, const std::string &session, const std::vector<std::string> &kvs);
 	void offline(long uid, const std::string &session);
+	void get_sessions(long uid, std::vector<std::string> &sessions);
+	void get_session_info(long uid, const std::string &session, const std::vector<std::string> &ks,
+                        std::map<std::string, std::string> &kvs);
 
 };
 
