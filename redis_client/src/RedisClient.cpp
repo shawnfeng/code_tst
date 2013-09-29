@@ -1,3 +1,4 @@
+#include <boost/scoped_ptr.hpp>
 #include "RedisClient.h"
 
 using namespace std;
