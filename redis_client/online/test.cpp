@@ -25,7 +25,13 @@ int main (int argc, char **argv)
 	g_log.debug("=================");
 	sleep(20);
 	oc.online(uid, session, kvs);
-	oc.offline(uid, session);
+	//oc.offline(uid, session);
+
+	vector<string> ks;
+  oc.get_sessions(uid, ks);
+
+  map<string, string> svs;
+  oc.get_session_info(uid, session, ks, svs);
 
 	pause();
 	

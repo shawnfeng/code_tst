@@ -78,7 +78,7 @@ struct RedisRv {
     std::string str; /* Used for both REDIS_REPLY_ERROR and REDIS_REPLY_STRING */
 };
 
-typedef std::vector<RedisRv> RedisRvs;
+typedef std::map< uint64_t, std::vector<RedisRv> > RedisRvs;
 
 
 

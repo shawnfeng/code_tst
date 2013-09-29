@@ -52,6 +52,7 @@ void OnlineCtrl::offline(long uid, const std::string &session)
   string path = sp_ + offline_ope;
 	if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
+    return;
 	}
 	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
@@ -67,11 +68,17 @@ void OnlineCtrl::offline(long uid, const std::string &session)
   rc_.cmd(rv, hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
+
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
-               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+    uint64_t addr = it->first;
+    for (vector<RedisRv>::const_iterator jt = it->second.begin();
+         jt != it->second.end(); ++jt) {
+      log_.trace("%s-->addr:%lu uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+                 fun, addr, uid, session.c_str(), jt->type, jt->integer, jt->len, jt->str.c_str());
+    }
 
 	}
+
 
 
 }
@@ -90,6 +97,7 @@ void OnlineCtrl::online(long uid,
   string path = sp_ + online_ope;
   if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
+    return;
 	}
 
 	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
@@ -121,9 +129,14 @@ void OnlineCtrl::online(long uid,
   rc_.cmd(rv, hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
+
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
-               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+    uint64_t addr = it->first;
+    for (vector<RedisRv>::const_iterator jt = it->second.begin();
+         jt != it->second.end(); ++jt) {
+      log_.trace("%s-->addr:%lu uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+                 fun, addr, uid, session.c_str(), jt->type, jt->integer, jt->len, jt->str.c_str());
+    }
 
 	}
 
@@ -140,6 +153,7 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
   string path = sp_ + get_session_ope;
   if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
+    return;
 	}
 
 	int timeout = 100;
@@ -154,14 +168,22 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
   rc_.cmd(rv, hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld rv.size:%lu", fun, uid, rv.size());
-	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.trace("%s-->uid:%ld type:%d,int:%ld,len:%d,str:%s",
-               fun, uid, it->type, it->integer, it->len, it->str.c_str());
 
-    if (it->type == REDIS_REPLY_STRING) {
-      sessions.push_back(it->str);
+	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
+    uint64_t addr = it->first;
+    for (vector<RedisRv>::const_iterator jt = it->second.begin();
+         jt != it->second.end(); ++jt) {
+      log_.trace("%s-->addr:%lu uid:%ld type:%d,int:%ld,len:%d,str:%s",
+                 fun, addr, uid, jt->type, jt->integer, jt->len, jt->str.c_str());
+
+      if (jt->type == REDIS_REPLY_STRING) {
+        sessions.push_back(jt->str);
+      }
+    
     }
+
 	}
+
 
 }
 
@@ -178,6 +200,7 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
   string path = sp_ + get_session_info_ope;
   if (!check_sha1(path.c_str(), data, sha1)) {
 		log_.error("error check sha1");
+    return;
 	}
 
 	int timeout = 100;
@@ -195,11 +218,38 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
   rc_.cmd(rv, hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
+
 	for (RedisRvs::const_iterator it = rv.begin(); it != rv.end(); ++it) {
-		log_.trace("%s-->uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
-               fun, uid, session.c_str(), it->type, it->integer, it->len, it->str.c_str());
+    uint64_t addr = it->first;
+
+    bool ispair = true;
+    if (it->second.size() % 2 != 0) {
+      ispair = false;
+    }
+    
+    int kvf = 0;
+    const char *key = NULL;
+    for (vector<RedisRv>::const_iterator jt = it->second.begin();
+         jt != it->second.end(); ++jt) {
+      log_.trace("%s-->addr:%lu uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+                 fun, addr, uid, session.c_str(), jt->type, jt->integer, jt->len, jt->str.c_str());
+
+      if (ispair) {
+        if (kvf++ % 2 == 0) {
+          key = jt->str.c_str();
+        } else {
+          kvs[key] = jt->str;
+        }
+
+      } else {
+        log_.error("%s-->return value not pair addr:%lu uid:%ld session:%s type:%d,int:%ld,len:%d,str:%s",
+                   fun, addr, uid, session.c_str(), jt->type, jt->integer, jt->len, jt->str.c_str());
+
+      }
+    }
 
 	}
+
 
 }
 

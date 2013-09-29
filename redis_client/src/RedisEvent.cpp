@@ -77,33 +77,53 @@ static void l_acquire (EV_P)
 	u->re()->lock();
 }
 
-static void redisrp_redisrvs(redisReply *reply, RedisRvs &rv)
+static void redisrp_redisrvs(redisReply *reply, cmd_arg_t &carg, uint64_t addr)
 {
 	if (!reply) return;
+
+	RedisRvs &rv = *carg.rv;
+  map<uint64_t, RedisRv> &err = carg.err;
 
 	redisReply *rp = NULL;
 	int ele = reply->elements;
 	struct redisReply **eles = reply->element;
-	do {
 
-		if (0 == ele ) {
-			rp = reply;
-		} else {
-			rp = *eles++;
-		}
+  if (reply->type != REDIS_REPLY_ERROR) {
+    RedisRvs::iterator rit =
+      rv.insert(pair< uint64_t, std::vector<RedisRv> >(addr, vector<RedisRv>())).first;
+                do {
+                  if (0 == ele ) {
+                    rp = reply;
+                  } else {
+                    rp = *eles++;
+                  }
 
-		RedisRv r;
-		r.type = rp->type;
-		r.integer = rp->integer;
-		r.len = rp->len;
+                  RedisRv r;
+                  r.type = rp->type;
+                  r.integer = rp->integer;
+                  r.len = rp->len;
 
-		rv.push_back(r);
-		if (rp->str != NULL) {
-			rv.back().str.assign(rp->str, rp->len); 
-		}
+                  rit->second.push_back(r);
+                  if (rp->str != NULL) {
+                    rit->second.back().str.assign(rp->str, rp->len); 
+                  }
 
-		// 暂时不支持嵌套结构的返回
-	} while (--ele > 0);
+                  // 暂时不支持嵌套结构的返回
+                } while (--ele > 0);
+
+
+
+  } else {
+		RedisRv e;
+		e.type = reply->type;
+		e.integer = reply->integer;
+		e.len = reply->len;
+    if (reply->str) {
+      e.str.assign(reply->str, reply->len); 
+    }
+    err[addr] = e;
+  }
+
 
 
 }
@@ -132,8 +152,8 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	// check ok, can use cf->d() pointer
 	cmd_arg_t *carg = (cmd_arg_t *)cf->d();
 	assert(carg);
-	RedisRvs &rv = *carg->rv;
-  map<uint64_t, RedisRv> &err = carg->err;
+  //	RedisRvs &rv = *carg->rv;
+  //  map<uint64_t, RedisRv> &err = carg->err;
 
 
 	if (cf->d_f() == 0) {
@@ -150,18 +170,7 @@ static void redis_cmd_cb(redisAsyncContext *c, void *r, void *data)
 	log->trace("redis_cmd_cb-->type:%d inter=%lld len:%d argv:%s ele:%lu ep:%p",
 		   reply->type, reply->integer, reply->len, reply->str, reply->elements, reply->element);
 
-  if (reply->type != REDIS_REPLY_ERROR) {
-    redisrp_redisrvs(reply, rv);
-  } else {
-		RedisRv e;
-		e.type = reply->type;
-		e.integer = reply->integer;
-		e.len = reply->len;
-    if (reply->str) {
-      e.str.assign(reply->str, reply->len); 
-    }
-    err[re->addr] = e;
-  }
+  redisrp_redisrvs(reply, *carg, re->addr);
 
 	//sleep(2);
  cond:
