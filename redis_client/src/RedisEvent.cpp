@@ -342,6 +342,13 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
     cmd(rv, erraddrs, timeout, argc, argv, argvlen, "");
   }
 
+  // error log, use the caller thread print
+  for (map<uint64_t, RedisRv>::const_iterator it = carg.err.begin();
+       it != carg.err.end();
+       ++it) {
+    log_->error("%s-->addr:%lu err:%s", fun, it->first, it->second.str.c_str());
+  }
+
 }
 
 
