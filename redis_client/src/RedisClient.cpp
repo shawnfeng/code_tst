@@ -27,6 +27,7 @@ void RedisClient::cmd(RedisRvs &rv, const std::vector<std::string> &hash,
                       const std::string &lua_code
                       )
 {
+  const char *fun = "RedisClient::cmd";
 	set<uint64_t> addrs;
 	rcx_.hash_addr(hash, addrs);
 
@@ -35,10 +36,15 @@ void RedisClient::cmd(RedisRvs &rv, const std::vector<std::string> &hash,
   const char **argv = inarg->argv;
   size_t *argvlen = inarg->argvlen;
 
+  string cmd;
   for (size_t i = 0; i < args.size(); ++i) {
     argv[i] = args[i].c_str();
     argvlen[i] = args[i].size();
+    cmd.append(args[i]);
+    cmd.append(" ");
   }
+
+  log_.debug("%s-->cmd:%s", fun, cmd.c_str());
 
   re_.cmd(rv, addrs, timeout, args.size(), argv, argvlen, lua_code);
 
