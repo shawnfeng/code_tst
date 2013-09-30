@@ -84,6 +84,9 @@ typedef std::map< uint64_t, std::vector<RedisRv> > RedisRvs;
 
 class RedisEvent {
  private:
+  enum {
+    ARGV_MAX_LEN = 2048,
+  };
 	LogOut *log_;
 	struct ev_loop *loop_;
 
@@ -94,15 +97,29 @@ class RedisEvent {
 
 	int req_count_;
 
+  // argv
+  const char **cmd_argv_;
+  size_t *cmd_argvlen_;
+
  private:
 	void run();
 
  public:
 	RedisEvent(LogOut *log
 		   ) : log_(log), loop_(EV_DEFAULT), ud_(this), req_count_(0)
+    , cmd_argv_(NULL), cmd_argvlen_(NULL) 
 		{
+      cmd_argv_ = new const char *[ARGV_MAX_LEN];
+      cmd_argvlen_ = new size_t[ARGV_MAX_LEN];
+    
 			log->info("%s-->loop:%p", "RedisEvent::RedisEvent", loop_);
+      
 		}
+  ~RedisEvent()
+    {
+      if (cmd_argv_) delete [] cmd_argv_;
+      if (cmd_argvlen_) delete cmd_argvlen_;
+    }
 
 	void lock() { mutex_.lock(); }
 	void unlock() { mutex_.unlock(); }
@@ -115,8 +132,8 @@ class RedisEvent {
 
 	//void cmd(std::set<uint64_t> &addrs, const char *cs, int timeout, std::vector<std::string> &rv);
 	void cmd(RedisRvs &rv, std::set<uint64_t> &addrs,
-           int timeout, int argc, const char **argv, size_t *argvlen,
-           const std::string &lua_code
+           int timeout, const std::vector<std::string> &args,
+           const std::string &lua_code, bool iseval
            );
 	struct ev_loop *loop() { return loop_; }
 

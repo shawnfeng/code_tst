@@ -238,19 +238,25 @@ void RedisEvent::connect(uint64_t addr)
 }
 
 void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
-                     int timeout, int argc, const char **argv, size_t *argvlen,
-                     const string &lua_code
+                     int timeout, const std::vector<std::string> &args,
+                     const string &lua_code, bool iseval
                      )
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
 	const char *fun = "RedisEvent::cmd";
 	ReqCount rcount(req_count_);
+  int argc = (int)args.size();
 
 	log_->debug("%s-->size:%lu cmd:%d rcount=%d", fun, addrs.size(), argc, rcount.cn());
 	if (addrs.empty()) {
 		log_->warn("%s-->empty redis context cmd:%d", fun, argc);
 		return;
 	}
+
+  if (argc >= ARGV_MAX_LEN) {
+    log_->error("%s-->args more size:%lu", fun, args.size());
+    return;
+  }
 
 	userdata_t *u = &ud_;
 
@@ -261,6 +267,23 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 	// ==========lock==========
 	log_->trace("%s-->loop lock", fun);
 	mutex_.lock();
+
+  // copy the args
+  const char **argv = cmd_argv_;
+  size_t *argvlen = cmd_argvlen_;
+  for (size_t i = 0; i < args.size(); ++i) {
+    argv[i] = args[i].c_str();
+    argvlen[i] = args[i].size();
+  }
+  if (iseval) {
+    argv[0] = "EVAL";
+    argv[1] = lua_code.c_str();
+    if (argvlen) {
+      argvlen[0] = 4;
+      argvlen[1] = lua_code.size();
+    }
+  }
+  //----------------------
 
 	cf = u->get_cf();
 	if (cf->f() || cf->d()) {
@@ -325,15 +348,8 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
   if (argc >= 2
       && !lua_code.empty()
       && !carg.err.empty()
-      && !strncmp(argv[0], "EVALSHA", 7)
+      && args[0] == "EVALSHA"
       ) {
-
-    argv[0] = "EVAL";
-    argv[1] = lua_code.c_str();
-    if (argvlen) {
-      argvlen[0] = 4;
-      argvlen[1] = lua_code.size();
-    }
 
     set<uint64_t> erraddrs;
     for (map<uint64_t, RedisRv>::const_iterator it = carg.err.begin();
@@ -348,7 +364,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 
     }
     
-    cmd(rv, erraddrs, timeout, argc, argv, argvlen, "");
+    cmd(rv, erraddrs, timeout, args, lua_code, true);
   }
 
   // error log, use the caller thread print
