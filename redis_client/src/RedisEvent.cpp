@@ -238,7 +238,7 @@ void RedisEvent::connect(uint64_t addr)
 
 }
 
-void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
+void RedisEvent::cmd(RedisRvs &rv, const std::string &log_key, set<uint64_t> &addrs,
                      int timeout, const std::vector<std::string> &args,
                      const string &lua_code, bool iseval
                      )
@@ -368,7 +368,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 
     }
     
-    cmd(rv, erraddrs, timeout, args, lua_code, true);
+    cmd(rv, log_key, erraddrs, timeout, args, lua_code, true);
   }
 
   // error log, use the caller thread print
@@ -378,7 +378,8 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
     log_->error("%s-->addr:%lu err:%s", fun, it->first, it->second.str.c_str());
   }
 
-	log_->info("%s-->size:%lu wsz:%d istimeout=%d rcount=%d tm=%ld", fun, addrs.size(), wsz, is_timeout, rcount.cn(), tu.intv());
+	log_->info("%s-->k:%s size:%lu wsz:%d istimeout:%d rcount:%d tm:%ld",
+             fun, log_key.c_str(), addrs.size(), wsz, is_timeout, rcount.cn(), tu.intv());
 
 }
 

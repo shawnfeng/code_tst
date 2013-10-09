@@ -66,7 +66,7 @@ void OnlineCtrl::offline(long uid, const std::string &session)
   args.push_back(boost::lexical_cast<string>(uid));
   args.push_back(session);
 
-  rc_.cmd(rv, hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
@@ -80,7 +80,7 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 
 	}
 
-	log_.info("%s-->tm:%ld", fun, tu.intv());
+	log_.info("%s-->uid:%ld tm:%ld", fun, uid, tu.intv());
 
 }
 
@@ -104,6 +104,7 @@ void OnlineCtrl::online(long uid,
       return;
     }
   }
+	log_.info("%s-->script uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
 	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
@@ -130,8 +131,11 @@ void OnlineCtrl::online(long uid,
   args.push_back(boost::lexical_cast<string>(stamp));
 
   args.insert(args.end(), kvs.begin(), kvs.end());
+	log_.info("%s-->arg uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
-  rc_.cmd(rv, hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
+
+	log_.info("%s-->get uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
@@ -145,7 +149,7 @@ void OnlineCtrl::online(long uid,
 
 	}
 
-	log_.info("%s-->tm:%ld", fun, tu.intv());
+	log_.info("%s-->over uid:%ld tm:%ld", fun, uid, tu.intv());
 
 
 }
@@ -173,7 +177,7 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
   args.push_back("1");
   args.push_back(boost::lexical_cast<string>(uid));
 
-  rc_.cmd(rv, hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld rv.size:%lu", fun, uid, rv.size());
 
@@ -192,7 +196,7 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
 
 	}
 
-	log_.info("%s-->tm:%ld", fun, tu.intv());
+	log_.info("%s-->uid:%ld tm:%ld", fun, uid, tu.intv());
 }
 
 
@@ -227,7 +231,7 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 
   args.insert(args.end(), ks.begin(), ks.end());
 
-  rc_.cmd(rv, hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
@@ -262,7 +266,7 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 
 	}
 
-	log_.info("%s-->tm:%ld", fun, tu.intv());
+	log_.info("%s-->uid:%ld tm:%ld", fun, uid, tu.intv());
 }
 
 
