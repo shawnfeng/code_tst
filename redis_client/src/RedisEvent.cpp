@@ -25,8 +25,8 @@ static void connect_cb(const redisAsyncContext *c, int status) {
 
 	if (status != REDIS_OK) {
 		rev->log()->error("connect_cb c:%p %s", c, c->errstr);
-		u->clear(re->addr);
-		return;
+		//u->clear(re->addr);
+		//return;
 	} else {
 		re->status = 1;
 		rev->log()->info("connect_cb c:%p ok", c);
@@ -47,7 +47,7 @@ static void disconnect_cb(const redisAsyncContext *c, int status) {
 	} else {
 		rev->log()->info("disconnect_cb c:%p ok", c);
 	}
-
+  /*
 	redisLibevEvents *re = (redisLibevEvents *)c->ev.data;
   assert(re);
 	u->clear(re->addr);
@@ -56,6 +56,7 @@ static void disconnect_cb(const redisAsyncContext *c, int status) {
 
   redisAsyncContext *context = (redisAsyncContext *)c;
   context->ev.data = NULL;
+  */
 }
 
 
@@ -224,12 +225,12 @@ void RedisEvent::connect(uint64_t addr)
 	redisAsyncContext *c = redisAsyncConnect(ip, port);
 	log_->info("%s-->connect ip:%s port:%d c:%p", fun, ip, port, c);
 	if (c->err) {
-		log_->error("%s-->%s", fun, c->errstr);
+		log_->error("%s-->%s %p", fun, c->errstr, c);
 		return;
 	}
 	c->ev.data = NULL;
 
-	ud_.insert(addr, c);
+	//ud_.insert(addr, c);
 
 	redisLibevAttach(loop_, c, addr);
 	redisAsyncSetConnectCallback(c, connect_cb);
@@ -302,7 +303,9 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 			assert(rd);
 			log_->trace("%s-->c:%p e:%p st:%d", fun, *it, rd, rd->status);
 			if (1 == rd->status) {				
-				redisAsyncCommandArgv(c, redis_cmd_cb, cf, argc, argv, argvlen);
+				if (REDIS_ERR == redisAsyncCommandArgv(c, redis_cmd_cb, cf, argc, argv, argvlen)) {
+          log_->error("%s-->redisAsyncCommandArgv %s %p", fun, c->errstr, c);
+        }
 				//redisAsyncCommand(c, redis_cmd_cb, cf, "SET %s %s", "foo", "hello world");
 				wsz++;
 			} else {
@@ -342,7 +345,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 	}
 
 
-	log_->info("%s-->size:%lu wsz:%d istimeout=%d cmd:%d", fun, addrs.size(), wsz, is_timeout, argc);
+	log_->info("%s-->size:%lu wsz:%d istimeout=%d rcount=%d", fun, addrs.size(), wsz, is_timeout, rcount.cn());
 
   // first load script
   if (argc >= 2
@@ -389,6 +392,11 @@ void userdata_t::clear(uint64_t addr)
 {
 	std::map<uint64_t, redisAsyncContext *>::iterator it = ctxs_.find(addr);
 	assert(it != ctxs_.end());
+  if (it == ctxs_.end()) {
+    re_->log()->error("userdata_t::clear why empty clear addr:%lu", addr);
+    return;
+  }
+
 	re_->log()->info("userdata_t::clear addr:%lu c:%p", addr, it->second);
 	ctxs_.erase(it);
 }

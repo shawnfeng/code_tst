@@ -22,7 +22,7 @@ class OnlineCtrl {
             ) : log_(log_t, log_d, log_i, log_w, log_e),
     sp_(path),
 		rc_(log_t, log_d, log_i, log_w, log_e,
-		    "10.2.72.57:4180,10.2.72.57:4181,10.2.72.57:4182",
+		    "10.2.72.12:4180,10.2.72.12:4181,10.2.72.12:4182",
 		    "/tx/online/legal_nodes"
 		    ) { rc_.start(); }
 
