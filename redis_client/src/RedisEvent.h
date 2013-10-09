@@ -47,13 +47,7 @@ public:
 
 	RedisEvent *re() { return re_; }
 
-	cflag_t *get_cf()
-	{ 
-		if (++idx_ >= CUR_CALL_NUM) idx_ = 0;
-
-		cflag_t *cf = &cfg_[idx_];
-		return cf;
-	}
+  inline cflag_t *get_cf();
 
 	void insert(uint64_t addr, redisAsyncContext *c);
 	void clear(uint64_t addr);
@@ -138,7 +132,6 @@ class RedisEvent {
 	struct ev_loop *loop() { return loop_; }
 
 };
-
 
 
 

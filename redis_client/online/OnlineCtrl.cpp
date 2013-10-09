@@ -44,6 +44,7 @@ static bool check_sha1(const char *path, string &data, string &sha1)
 
 void OnlineCtrl::offline(long uid, const std::string &session)
 {
+  TimeUse tu;
   const char *fun = "OnlineCtrl::offline";
 	vector<string> hash;
 	RedisRvs rv;
@@ -79,7 +80,7 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 
 	}
 
-
+	log_.info("%s-->tm:%ld", fun, tu.intv());
 
 }
 
@@ -88,17 +89,21 @@ void OnlineCtrl::online(long uid,
 			const string &session,
 			const vector<string> &kvs)
 {
+  TimeUse tu;
   const char *fun = "OnlineCtrl::online";
 
 	vector<string> hash;
 	RedisRvs rv;
-	string data, sha1;
 
-  string path = sp_ + online_ope;
-  if (!check_sha1(path.c_str(), data, sha1)) {
-		log_.error("error check sha1");
-    return;
-	}
+	static string data, sha1;
+
+  if (data.empty() || sha1.empty()) {
+    string path = sp_ + online_ope;
+    if (!check_sha1(path.c_str(), data, sha1)) {
+      log_.error("error check sha1");
+      return;
+    }
+  }
 
 	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
@@ -140,11 +145,14 @@ void OnlineCtrl::online(long uid,
 
 	}
 
+	log_.info("%s-->tm:%ld", fun, tu.intv());
+
 
 }
 
 void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
 {
+  TimeUse tu;
   const char *fun = "OnlineCtrl::get_sessions";
 	vector<string> hash;
 	RedisRvs rv;
@@ -184,24 +192,28 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
 
 	}
 
-
+	log_.info("%s-->tm:%ld", fun, tu.intv());
 }
 
 
 void OnlineCtrl::get_session_info(long uid, const string &session, const vector<string> &ks,
                                   map<string, string> &kvs)
 {
+  TimeUse tu;
   const char *fun = "OnlineCtrl::get_session_info";
 
 	vector<string> hash;
 	RedisRvs rv;
-	string data, sha1;
+	static string data, sha1;
 
-  string path = sp_ + get_session_info_ope;
-  if (!check_sha1(path.c_str(), data, sha1)) {
-		log_.error("error check sha1");
-    return;
-	}
+  if (data.empty() || sha1.empty()) {
+    string path = sp_ + get_session_info_ope;
+    if (!check_sha1(path.c_str(), data, sha1)) {
+      log_.error("error check sha1");
+      return;
+    }
+  }
+
 
 	int timeout = 100;
 
@@ -250,7 +262,7 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 
 	}
 
-
+	log_.info("%s-->tm:%ld", fun, tu.intv());
 }
 
 

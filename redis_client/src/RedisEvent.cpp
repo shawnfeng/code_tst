@@ -244,6 +244,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
                      )
 {
 	//userdata *u = (userdata *)ev_userdata (loop_);
+  TimeUse tu;
 	const char *fun = "RedisEvent::cmd";
 	ReqCount rcount(req_count_);
   int argc = (int)args.size();
@@ -345,7 +346,7 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
 	}
 
 
-	log_->info("%s-->size:%lu wsz:%d istimeout=%d rcount=%d", fun, addrs.size(), wsz, is_timeout, rcount.cn());
+
 
   // first load script
   if (argc >= 2
@@ -377,10 +378,22 @@ void RedisEvent::cmd(RedisRvs &rv, set<uint64_t> &addrs,
     log_->error("%s-->addr:%lu err:%s", fun, it->first, it->second.str.c_str());
   }
 
+	log_->info("%s-->size:%lu wsz:%d istimeout=%d rcount=%d tm=%ld", fun, addrs.size(), wsz, is_timeout, rcount.cn(), tu.intv());
+
 }
 
 
 // =============================
+cflag_t *userdata_t::get_cf()
+{
+  if (++idx_ >= CUR_CALL_NUM) idx_ = 0;
+
+  re_->log()->trace("userdata_t::get_cf idx:%lu", idx_);
+
+  cflag_t *cf = &cfg_[idx_];
+  return cf;
+}
+
 void userdata_t::insert(uint64_t addr, redisAsyncContext *c)
 {
 	assert(ctxs_.find(addr) == ctxs_.end());

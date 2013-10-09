@@ -66,4 +66,33 @@ void int64_ipv4(uint64_t ipv4, char *ip, size_t len, int &port);
 bool str_ipv4(const std::string &addr, std::string &ip, int &port, std::string &err);
 
 
+class TimeUse {
+  long bt_;
+
+ public:
+
+  long get_mtime() const
+  {
+    timeval tstamp;
+    gettimeofday(&tstamp, NULL);
+    return (tstamp.tv_sec*1000000 + tstamp.tv_usec)/1000;
+  }
+
+  
+ TimeUse() : bt_(get_mtime()) {}
+
+  long intv() const { 
+    return get_mtime() - bt_;
+  }
+  long intv_reset() {
+    long nw = get_mtime();
+    long ut = nw - bt_;
+    bt_ = nw;
+    return ut;
+  }
+  
+};
+
+
+
 #endif
