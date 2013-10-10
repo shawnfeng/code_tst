@@ -6,9 +6,19 @@
 #include "../src/RedisClient.h"
 
 class OnlineCtrl {
+  struct script_t {
+    std::string sha1;
+    std::string data;
+  };
+
 	LogOut log_;
   std::string sp_;
 	RedisClient rc_;
+
+  script_t s_online_;
+  script_t s_offline_;
+  script_t s_session_info_;
+  script_t s_sessions_;
 
 
  public:
@@ -18,14 +28,8 @@ class OnlineCtrl {
             void (*log_w)(const char *),
             void (*log_e)(const char *),
 
-            const char *path
-            ) : log_(log_t, log_d, log_i, log_w, log_e),
-    sp_(path),
-		rc_(log_t, log_d, log_i, log_w, log_e,
-		    "10.2.72.12:4180,10.2.72.12:4181,10.2.72.12:4182",
-		    "/tx/online/legal_nodes"
-		    ) { rc_.start(); }
-
+            const char *script_path
+            );
 
 	void online(long uid, const std::string &session, const std::vector<std::string> &kvs);
 	void offline(long uid, const std::string &session);

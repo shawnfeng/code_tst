@@ -41,6 +41,52 @@ static bool check_sha1(const char *path, string &data, string &sha1)
  
 }
 
+OnlineCtrl::OnlineCtrl(void (*log_t)(const char *),
+                       void (*log_d)(const char *),
+                       void (*log_i)(const char *),
+                       void (*log_w)(const char *),
+                       void (*log_e)(const char *),
+
+                       const char *script_path
+                       ) : log_(log_t, log_d, log_i, log_w, log_e),
+                           sp_(script_path),
+                           rc_(log_t, log_d, log_i, log_w, log_e,
+                               "10.2.72.12:4180,10.2.72.12:4181,10.2.72.12:4182",
+                               "/tx/online/legal_nodes"
+                               )
+{
+  rc_.start();
+
+  // init script
+
+  string path = sp_ + online_ope;
+	if (!check_sha1(path.c_str(), s_online_.data, s_online_.sha1)) {
+		log_.error("%s error check sha1", path.c_str());
+	}
+
+	log_.info("data:%s sha1:%s", s_online_.data.c_str(), s_online_.sha1.c_str());
+
+  path = sp_ + offline_ope;
+	if (!check_sha1(path.c_str(), s_offline_.data, s_offline_.sha1)) {
+		log_.error("%s error check sha1", path.c_str());
+	}
+	log_.info("data:%s sha1:%s", s_offline_.data.c_str(), s_offline_.sha1.c_str());
+
+  path = sp_ + get_session_info_ope;
+	if (!check_sha1(path.c_str(), s_session_info_.data, s_session_info_.sha1)) {
+		log_.error("%s error check sha1", path.c_str());
+	}
+	log_.info("data:%s sha1:%s", s_session_info_.data.c_str(), s_session_info_.sha1.c_str());
+
+  path = sp_ + get_session_ope;
+	if (!check_sha1(path.c_str(), s_sessions_.data, s_sessions_.sha1)) {
+		log_.error("%s error check sha1", path.c_str());
+	}
+	log_.info("data:%s sha1:%s", s_sessions_.data.c_str(), s_sessions_.sha1.c_str());
+
+
+}
+
 
 void OnlineCtrl::offline(long uid, const std::string &session)
 {
@@ -48,25 +94,18 @@ void OnlineCtrl::offline(long uid, const std::string &session)
   const char *fun = "OnlineCtrl::offline";
 	vector<string> hash;
 	RedisRvs rv;
-	string data, sha1;
-  // !!!!!!!!!!load 需要优化！！
-  string path = sp_ + offline_ope;
-	if (!check_sha1(path.c_str(), data, sha1)) {
-		log_.error("error check sha1");
-    return;
-	}
-	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
+
 	int timeout = 100;
 
   vector<string> args;
   args.push_back("EVALSHA");
-  args.push_back(sha1);
+  args.push_back(s_offline_.sha1);
 
   args.push_back("2");
   args.push_back(boost::lexical_cast<string>(uid));
   args.push_back(session);
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_offline_.data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
@@ -95,18 +134,7 @@ void OnlineCtrl::online(long uid,
 	vector<string> hash;
 	RedisRvs rv;
 
-	static string data, sha1;
 
-  if (data.empty() || sha1.empty()) {
-    string path = sp_ + online_ope;
-    if (!check_sha1(path.c_str(), data, sha1)) {
-      log_.error("error check sha1");
-      return;
-    }
-  }
-	log_.info("%s-->script uid:%ld tm:%ld", fun, uid, tu.intv_reset());
-
-	//log_.trace("data:%s sha1:%s", data.c_str(), sha1.c_str());
 	int timeout = 100;
 	int stamp = time(NULL);
 
@@ -123,7 +151,7 @@ void OnlineCtrl::online(long uid,
   
   vector<string> args;
   args.push_back("EVALSHA");
-  args.push_back(sha1);
+  args.push_back(s_online_.sha1);
 
   args.push_back("3");
   args.push_back(boost::lexical_cast<string>(uid));
@@ -133,7 +161,7 @@ void OnlineCtrl::online(long uid,
   args.insert(args.end(), kvs.begin(), kvs.end());
 	log_.info("%s-->arg uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_online_.data);
 
 	log_.info("%s-->get uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
@@ -160,24 +188,17 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
   const char *fun = "OnlineCtrl::get_sessions";
 	vector<string> hash;
 	RedisRvs rv;
-	string data, sha1;
-
-  string path = sp_ + get_session_ope;
-  if (!check_sha1(path.c_str(), data, sha1)) {
-		log_.error("error check sha1");
-    return;
-	}
 
 	int timeout = 100;
 
   vector<string> args;
   args.push_back("EVALSHA");
-  args.push_back(sha1);
+  args.push_back(s_sessions_.sha1);
 
   args.push_back("1");
   args.push_back(boost::lexical_cast<string>(uid));
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_sessions_.data);
 
 	log_.debug("%s-->uid:%ld rv.size:%lu", fun, uid, rv.size());
 
@@ -208,22 +229,12 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 
 	vector<string> hash;
 	RedisRvs rv;
-	static string data, sha1;
-
-  if (data.empty() || sha1.empty()) {
-    string path = sp_ + get_session_info_ope;
-    if (!check_sha1(path.c_str(), data, sha1)) {
-      log_.error("error check sha1");
-      return;
-    }
-  }
-
 
 	int timeout = 100;
 
   vector<string> args;
   args.push_back("EVALSHA");
-  args.push_back(sha1);
+  args.push_back(s_session_info_.sha1);
 
   args.push_back("2");
   args.push_back(boost::lexical_cast<string>(uid));
@@ -231,7 +242,7 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 
   args.insert(args.end(), ks.begin(), ks.end());
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, data);
+  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_session_info_.data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
