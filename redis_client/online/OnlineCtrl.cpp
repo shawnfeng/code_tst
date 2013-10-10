@@ -95,6 +95,10 @@ void OnlineCtrl::offline(long uid, const std::string &session)
 	vector<string> hash;
 	RedisRvs rv;
 
+  string suid = boost::lexical_cast<string>(uid);
+  string log_key = suid;
+  hash.push_back(suid);
+
 	int timeout = 100;
 
   vector<string> args;
@@ -102,10 +106,10 @@ void OnlineCtrl::offline(long uid, const std::string &session)
   args.push_back(s_offline_.sha1);
 
   args.push_back("2");
-  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(suid);
   args.push_back(session);
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_offline_.data);
+  rc_.cmd(rv, log_key, hash, timeout, args, s_offline_.data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 
@@ -134,6 +138,9 @@ void OnlineCtrl::online(long uid,
 	vector<string> hash;
 	RedisRvs rv;
 
+  string suid = boost::lexical_cast<string>(uid);
+  string log_key = suid;
+  hash.push_back(suid);
 
 	int timeout = 100;
 	int stamp = time(NULL);
@@ -154,14 +161,14 @@ void OnlineCtrl::online(long uid,
   args.push_back(s_online_.sha1);
 
   args.push_back("3");
-  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(suid);
   args.push_back(session);
   args.push_back(boost::lexical_cast<string>(stamp));
 
   args.insert(args.end(), kvs.begin(), kvs.end());
 	log_.info("%s-->arg uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_online_.data);
+  rc_.cmd(rv, log_key, hash, timeout, args, s_online_.data);
 
 	log_.info("%s-->get uid:%ld tm:%ld", fun, uid, tu.intv_reset());
 
@@ -189,6 +196,12 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
 	vector<string> hash;
 	RedisRvs rv;
 
+  string suid = boost::lexical_cast<string>(uid);
+  string log_key = suid;
+  hash.push_back(suid);
+
+
+
 	int timeout = 100;
 
   vector<string> args;
@@ -196,9 +209,9 @@ void OnlineCtrl::get_sessions(long uid, vector<string> &sessions)
   args.push_back(s_sessions_.sha1);
 
   args.push_back("1");
-  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(suid);
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_sessions_.data);
+  rc_.cmd(rv, log_key, hash, timeout, args, s_sessions_.data);
 
 	log_.debug("%s-->uid:%ld rv.size:%lu", fun, uid, rv.size());
 
@@ -230,6 +243,11 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
 	vector<string> hash;
 	RedisRvs rv;
 
+  string suid = boost::lexical_cast<string>(uid);
+  string log_key = suid;
+  hash.push_back(suid);
+
+
 	int timeout = 100;
 
   vector<string> args;
@@ -237,12 +255,12 @@ void OnlineCtrl::get_session_info(long uid, const string &session, const vector<
   args.push_back(s_session_info_.sha1);
 
   args.push_back("2");
-  args.push_back(boost::lexical_cast<string>(uid));
+  args.push_back(suid);
   args.push_back(session);
 
   args.insert(args.end(), ks.begin(), ks.end());
 
-  rc_.cmd(rv, boost::lexical_cast<string>(uid), hash, timeout, args, s_session_info_.data);
+  rc_.cmd(rv, log_key, hash, timeout, args, s_session_info_.data);
 
 	log_.debug("%s-->uid:%ld session:%s rv.size:%lu", fun, uid, session.c_str(), rv.size());
 

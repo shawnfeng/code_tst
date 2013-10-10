@@ -277,6 +277,7 @@ void RedisEvent::cmd(RedisRvs &rv, const std::string &log_key, set<uint64_t> &ad
     argv[i] = args[i].c_str();
     argvlen[i] = args[i].size();
   }
+
   if (iseval) {
     argv[0] = "EVAL";
     argv[1] = lua_code.c_str();
@@ -352,6 +353,7 @@ void RedisEvent::cmd(RedisRvs &rv, const std::string &log_key, set<uint64_t> &ad
   if (argc >= 2
       && !lua_code.empty()
       && !carg.err.empty()
+      // sorry! EVALSHA commend must be used caps
       && args[0] == "EVALSHA"
       ) {
 

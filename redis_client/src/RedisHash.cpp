@@ -1,3 +1,5 @@
+#include "city.h"
+
 #include "RedisHash.h"
 
 using namespace std;
@@ -132,16 +134,29 @@ void RedisHash::update_ends(const vector< pair<string, int> > &ends)
 
 	boost::unique_lock< boost::shared_mutex > lock(smux_);
 	addrs_.swap(addrs);
+  addrs_v_.clear();
+  addrs_v_.assign(addrs_.begin(), addrs_.end());
 }
 
-void RedisHash::hash_addr(const std::vector<std::string> &hash, std::set<uint64_t> &addrs)
+void RedisHash::hash_addr(const vector<string> &hash, std::set<uint64_t> &addrs)
 {
 	const char *fun = "RedisHash::hash_addr";
 
 
 	boost::shared_lock< boost::shared_mutex > lock(smux_);
-	// just test give all
-	addrs = addrs_;
+
+  if (addrs_.empty() || addrs_v_.empty()) {
+    log_->error("%s-->redis addrs emtpy!", fun);
+    return;
+  }
+
+  uint64 tmp;
+  for (vector<string>::const_iterator it = hash.begin(); it != hash.end(); ++it) {
+
+    tmp = CityHash64(it->c_str(), it->size());
+    log_->trace("%s-->hash:%s city64:%lu", fun, it->c_str(), tmp);
+    addrs.insert(addrs_v_.at(tmp % addrs_v_.size()));
+  }
 
 	log_->debug("%s-->hash:%lu addrs:%lu", fun, hash.size(), addrs.size());
 }

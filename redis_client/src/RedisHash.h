@@ -29,6 +29,7 @@ class RedisHash {
 	RedisEvent *re_;
 	boost::shared_mutex smux_;
 	std::set<uint64_t> addrs_;
+  std::vector<uint64_t> addrs_v_;
 
 	// zookeeper
 	zk_ctx_t zk_ctx_;

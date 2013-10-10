@@ -13,6 +13,7 @@ void RedisClient::cmd(RedisRvs &rv, const std::string &log_key, const std::vecto
 	rcx_.hash_addr(hash, addrs);
 
 	log_.info("%s-->k:%s hash tm:%ld", fun, log_key.c_str(), tu.intv_reset());
+  /*
   string cmd;
   for (size_t i = 0; i < args.size(); ++i) {
     cmd.append(args[i]);
@@ -20,7 +21,7 @@ void RedisClient::cmd(RedisRvs &rv, const std::string &log_key, const std::vecto
   }
 
   log_.debug("%s-->k:%s cmd:%s", fun, log_key.c_str(), cmd.c_str());
-
+  */
   re_.cmd(rv, log_key, addrs, timeout, args, lua_code, false);
 	log_.info("%s-->k:%s event tm:%ld", fun, log_key.c_str(), tu.intv_reset());
 

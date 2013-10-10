@@ -4,10 +4,10 @@
 using namespace std;
 
 const int INIT_SLEEP = 2;
-const int THREAD_CB_RUN_TIMES = 5;
+const int THREAD_CB_RUN_TIMES = 10;
 const int THREAD_NUMS = 1;
 
-const bool IS_GET_SESSIONS_INFO_TEST = true;
+const bool IS_GET_SESSIONS_INFO_TEST = false;
 
 void *thread_cb(void* args)
 {  
