@@ -9,3 +9,6 @@ gcc dm.c  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/z
 g++ talk.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/zookeeper -L/home/code/rp/zookeeper/lib -lzookeeper_mt -Wl,-rpath,/home/code/rp/zookeeper/lib -o talk
 
 g++  ephemeral_node.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/zookeeper -L/home/code/rp/zookeeper/lib -lzookeeper_mt -Wl,-rpath,/home/code/rp/zookeeper/lib -o ephemeral_node
+
+
+g++ online_config.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/zookeeper -L/home/code/rp/zookeeper/lib -lzookeeper_mt -Wl,-rpath,/home/code/rp/zookeeper/lib -o online_config
