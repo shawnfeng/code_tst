@@ -12,3 +12,5 @@ g++  ephemeral_node.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zooke
 
 
 g++ online_config.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/zookeeper -L/home/code/rp/zookeeper/lib -lzookeeper_mt -Wl,-rpath,/home/code/rp/zookeeper/lib -o online_config
+
+g++ zk_cmd.cc  -I/home/code/rp/zookeeper/include  -I/home/code/rp/zookeeper/include/zookeeper -L/home/code/rp/zookeeper/lib -Wl,-Bstatic -lzookeeper_mt -Wl,-Bdynamic -lpthread -Wl,-rpath,/home/code/rp/zookeeper/lib -o zk_cmd
