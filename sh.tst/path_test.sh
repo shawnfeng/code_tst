@@ -15,6 +15,7 @@ script_path=$run_path/$dir_path
 echo $script_path
 
 cd $script_path
+pwd
 cd ..
 pwd
 
