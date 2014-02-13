@@ -14,11 +14,10 @@
 #include <assert.h>
 #include <ev.h>
 
-#define SERVER_PORT 8002
+
 struct client {
-        int fd;
-        ev_io ev_write;
 	ev_io ev_read;
+        int fd;
 };
 
 
@@ -88,7 +87,7 @@ static int check_read(const int fd, char *buff, int sz)
 static void read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 { 
 	
-	struct client *cli= ((struct client*) (((char*)w) - offsetof(struct client,ev_read)));
+	struct client *cli = (struct client *)w;
 	int n = 0;
 	char rbuff[5];
 	assert(revents == EV_READ);
@@ -138,7 +137,7 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 	ev_io_start(loop, &client->ev_read);
 }
 
-
+#define SERVER_PORT 8599
 int main()
 {
 
@@ -167,6 +166,8 @@ int main()
 		err(1, "failed to set server socket to non-blocking");
 	 
 	
+
+
 	// start ev loop
 	struct ev_loop *loop = ev_default_loop (0);
 	ev_io ev_accept;
