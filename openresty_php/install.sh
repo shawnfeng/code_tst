@@ -9,14 +9,13 @@ tar_php=php-5.5.9
 ins_path="`pwd`/install"
 #ins_path="/home/code/openresty_php"
 
-
-function init_pre
+init_pre()
 {
     mkdir -p $ins_path
 
     # download
-    #wget $url_openrestry
-    #wget $url_php
+    wget $url_openrestry
+    wget $url_php
 
 
     # uncomp
@@ -25,7 +24,7 @@ function init_pre
 }
 
 # install openrestry
-function install_openrestry
+install_openrestry()
 {
     cd $tar_openrestry
     ./configure --with-luajit --prefix=$ins_path/openrestry
@@ -35,16 +34,16 @@ function install_openrestry
 }
 
 # install php
-function install_php
+install_php()
 {
     cd $tar_php
-    ./configure --prefix=$ins_path/php --enable-fpm --with-openssl --with-pcre-regex --with-zlib --with-bz2 --with-curl  --with-gettext --enable-mbstring  --enable-zip --with-pear
+    ./configure --prefix=$ins_path/php --enable-fpm --with-openssl --with-pcre-regex --with-zlib  --with-gettext --enable-mbstring  --enable-zip --with-pear
     make -j 5
     make install
     cd ..
 }
 
 
-init_pre
-install_openrestry
+#init_pre
+#install_openrestry
 install_php
