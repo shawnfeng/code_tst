@@ -3,3 +3,14 @@
 *.so
 *.d
 *a.out
+
+
+mygo/src/ccallbacks/
+mygo/src/code.google.com/
+mygo/src/github.com/
+mygo/src/gocallback/gocallback
+mygo/src/mathapp/mathapp
+zeromq/client
+zeromq/client_c
+zeromq/server
+zeromq/server_c
