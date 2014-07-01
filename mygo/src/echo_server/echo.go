@@ -1,7 +1,9 @@
 package main
+
 // TODO LIST:
 // slice array string diff
 // select add timeout, expecial Client.Send
+// SetWriteDeadline Client.Send, Test it
 
 import (
 	//"fmt"
@@ -40,13 +42,21 @@ func (self *Client) sendUnLock() {
 }
 
 // goroutine
-func (self *Client) Send(s string) {
+func (self *Client) Send(conn_man *ConnectionManager, s string) {
 	log.Println("Client.Send", self.conn_id, s)
 
 	self.sendLock()
 	defer self.sendUnLock()
+
+	self.conn.SetWriteDeadline(time.Now().Add(time.Duration(5) * time.Second))
 	a, err := self.conn.Write([]byte(s))
 	log.Println("Client.Send Write rv", self.conn_id, self.client_id, a, err)
+
+	if err != nil {
+		log.Println("Client write error: ", self.conn_id, self.client_id, err)
+		self.Close(conn_man)
+		return
+	}
 
 }
 
@@ -90,9 +100,8 @@ type TransReq struct {
 
 type TransRecv struct {
 	client *Client
-	data      string
+	data   string
 }
-
 
 type ConnectionManager struct {
 	clients map[string]*Client
@@ -135,7 +144,7 @@ func (self *ConnectionManager) Req() {
 			self.clients[conn_id] = cli
 			log.Println("Add", conn_id, len(self.clients))
 			go cli.Recv(self)
-			go cli.Send("Conn OK:" + conn_id)
+			go cli.Send(self, "Conn OK:"+conn_id)
 
 		case r := <-self.delreq:
 			conn_id := r.conn_id
@@ -162,7 +171,7 @@ func (self *ConnectionManager) Trans() {
 
 		case r := <-self.recvbuf:
 			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.client.conn_id, r.data)
-			go r.client.Send("Recv:connid" + r.client.conn_id + " Data:" + r.data)
+			go r.client.Send(self, "Recv:connid"+r.client.conn_id+" Data:"+r.data)
 
 		}
 
