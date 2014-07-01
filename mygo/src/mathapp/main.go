@@ -52,8 +52,8 @@ func busy(f chan bool) {
 
 func loop_show() {
 
-	 for i:=0; i < 1000; i++ {
-	      time.Sleep(1000 * 1000 * 1000 * 2)
+	 for i:=0; ; i++ {
+	      time.Sleep(1000 * 1000 * 1)
         	 C.tid()
           fmt.Println("SHOW:", i)
 
@@ -71,7 +71,7 @@ func main() {
 	 fmt.Printf("Hello, world.  Sqrt(2) = %v\n", mymath.Sqrt(2))
 	 PrintHello()
 
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(2)
 
 
 	begin := make(chan bool)
