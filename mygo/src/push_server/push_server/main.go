@@ -11,6 +11,7 @@ import (
 	"net"
 	"reflect"
 	"time"
+	"encoding/binary"
 )
 
 import (
@@ -62,7 +63,10 @@ func (self *Client) Send(conn_man *ConnectionManager, s string) {
 
 // goroutine
 func (self *Client) Recv(conn_man *ConnectionManager) {
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 2048)
+	packBuff := make([]byte, 0)
+	var bufLen uint64 = 0
+
 	conn := self.conn
 	log.Println(reflect.TypeOf(conn))
 
@@ -76,7 +80,55 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 			return
 		}
 
-		conn_man.Recv(self, string(buffer[0:bytesRead]))
+
+
+		packBuff = append(packBuff, buffer[:bytesRead]...)
+		bufLen += uint64(bytesRead)
+
+
+	    log.Println("Client Recv: ", self.conn_id, self.client_id, bytesRead, packBuff, bufLen)
+
+		for {
+			if (bufLen > 0) {
+			    pacLen, sz := binary.Uvarint(packBuff[:bufLen])
+				if sz < 0 {
+					log.Println("Client package head error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+					return
+				} else if sz == 0 {
+				    break
+				}
+				// must < 5K
+				if pacLen > 1024 * 5 {
+					log.Println("Client package too long error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+					return
+				}
+
+				apacLen := uint64(sz)+pacLen+1
+				if bufLen >= apacLen {
+				    pad := packBuff[apacLen-1]
+					if pad != 0 {
+						log.Println("Client package pad error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+					    return
+					}
+				    conn_man.Recv(self, string(packBuff[sz:apacLen-1]))
+					packBuff = packBuff[apacLen:]
+					bufLen -= apacLen
+				} else {
+					break
+				}
+
+			} else {
+				break
+
+			}
+
+		}
+
+
+
+		//log.Println("Client.Recv:", pack_len, reflect.TypeOf(pack_len))
+
+		//conn_man.Recv(self, string(buffer[0:bytesRead]))
 		//log.Println("Receive:", self.conn_id, self.client_id, string(buffer[0:bytesRead]))
 		//a, err := conn.Write(buffer[0:bytesRead])
 		//log.Println("Write rv", self.conn_id, self.client_id, a, err)
@@ -144,7 +196,7 @@ func (self *ConnectionManager) Req() {
 			self.clients[conn_id] = cli
 			log.Println("Add", conn_id, len(self.clients))
 			go cli.Recv(self)
-			go cli.Send(self, "Conn OK:"+conn_id)
+			//go cli.Send(self, "Conn OK:"+conn_id)
 
 		case r := <-self.delreq:
 			conn_id := r.conn_id
@@ -171,7 +223,8 @@ func (self *ConnectionManager) Trans() {
 
 		case r := <-self.recvbuf:
 			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.client.conn_id, r.data)
-			go r.client.Send(self, "Recv:connid"+r.client.conn_id+" Data:"+r.data)
+			//go r.client.Send(self, "Recv:connid"+r.client.conn_id+" Data:"+r.data)
+			go r.client.Send(self, r.data)
 
 		}
 
