@@ -5,7 +5,8 @@
 *a.out
 
 
-mygo/src/ccallbacks/
+
+mygo/src/ccallbacks/ccallbacks
 mygo/src/code.google.com/
 mygo/src/github.com/
 mygo/src/gocallback/gocallback
@@ -14,3 +15,20 @@ zeromq/client
 zeromq/client_c
 zeromq/server
 zeromq/server_c
+
+
+mygo/src/chat_server/chat_server
+mygo/src/echo_server/2
+mygo/src/echo_server/echo.go2
+mygo/src/echo_server/echo_server
+mygo/src/encode_tst/encode_tst
+mygo/src/los/los
+mygo/src/proto_tst/tst/tst
+mygo/src/push_server/push_server/push_server
+mygo/src/push_server/push_tst/push_tst
+mygo/src/redis_tst/redis_tst
+mygo/src/redix_tst/redix_tst
+mygo/src/some_tst/some_tst
+mygo/src/tst_funout_disp/tst_funout_disp
+mygo/src/tst_some/tst_some
+mygo/src/zk_tst/zk_tst
