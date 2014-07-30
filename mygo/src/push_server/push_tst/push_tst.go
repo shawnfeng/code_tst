@@ -65,6 +65,10 @@ func main() {
 
 	//  tst pad err
 	conn := connect()
+
+    packtst(conn, 300*1000000, 0)
+
+
 	packtst(conn, 0, 1)
 
 	conn = connect()
@@ -85,6 +89,9 @@ func main() {
 
 	// split pak
     packtst(conn, 300, 0)
+
+
+
 
 	// > 5k
 	//packtst(conn, 1024*5+10, 0)

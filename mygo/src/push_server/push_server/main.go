@@ -1,9 +1,8 @@
 package main
 
 // TODO LIST:
-// slice array string diff
 // select add timeout, expecial Client.Send
-// SetWriteDeadline Client.Send, Test it, search tcpserver
+
 
 import (
 	//"fmt"
