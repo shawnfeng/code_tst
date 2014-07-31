@@ -39,3 +39,9 @@ func main() {
 		}
 	}
 }
+
+
+// rediscluster
+// 支持apply, 一次多个命令过去,并统一获得返回
+
+// package put in github
