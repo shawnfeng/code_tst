@@ -3,7 +3,7 @@ package tcpconn
 // TODO LIST:
 // select add timeout, expecial Client.Send
 
-
+// base lib
 import (
 	//"fmt"
 	"log"
@@ -13,19 +13,26 @@ import (
 	"encoding/binary"
 )
 
+// ext lib
 import (
-	"code.google.com/p/go-uuid/uuid"
+	//"code.google.com/p/go-uuid/uuid"
+	"code.google.com/p/goprotobuf/proto"
+)
+
+// my lib
+import (
+	"push_server/pb"
+
 )
 
 type Client struct {
-	conn_id   string
-	client_id string
+	client_id   string
 	conn      net.Conn
 	sending   chan bool
 }
 
 func (self *Client) Close(conn_man *ConnectionManager) {
-	conn_man.DelClient(self.conn_id)
+	conn_man.DelClient(self.client_id)
 	self.conn.Close()
 
 }
@@ -43,17 +50,17 @@ func (self *Client) sendUnLock() {
 
 // goroutine
 func (self *Client) Send(conn_man *ConnectionManager, s string) {
-	log.Println("Client.Send", self.conn_id, s)
+	log.Println("Client.Send", self.client_id, s)
 
 	self.sendLock()
 	defer self.sendUnLock()
 
 	self.conn.SetWriteDeadline(time.Now().Add(time.Duration(5) * time.Second))
 	a, err := self.conn.Write([]byte(s))
-	log.Println("Client.Send Write rv", self.conn_id, self.client_id, a, err)
+	log.Println("Client.Send Write rv", self.client_id, a, err)
 
 	if err != nil {
-		log.Println("Client write error: ", self.conn_id, self.client_id, err)
+		log.Println("Client write error: ", self.client_id, err)
 		self.Close(conn_man)
 		return
 	}
@@ -75,7 +82,7 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
 		bytesRead, error := conn.Read(buffer)
 		if error != nil {
-			log.Println("Client connection error: ", self.conn_id, self.client_id, error)
+			log.Println("Client connection error: ", self.client_id, error)
 			return
 		}
 
@@ -85,20 +92,20 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 		bufLen += uint64(bytesRead)
 
 
-	    log.Println("Client Recv: ", self.conn_id, self.client_id, bytesRead, packBuff, bufLen)
+	    log.Println("Client Recv: ", self.client_id, bytesRead, packBuff, bufLen)
 
 		for {
 			if (bufLen > 0) {
 			    pacLen, sz := binary.Uvarint(packBuff[:bufLen])
 				if sz < 0 {
-					log.Println("Client package head error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+					log.Println("Client package head error: ", self.client_id, packBuff[:bufLen])
 					return
 				} else if sz == 0 {
 				    break
 				}
 				// must < 5K
 				if pacLen > 1024 * 5 {
-					log.Println("Client package too long error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+					log.Println("Client package too long error: ", self.client_id, packBuff[:bufLen])
 					return
 				}
 
@@ -106,10 +113,10 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 				if bufLen >= apacLen {
 				    pad := packBuff[apacLen-1]
 					if pad != 0 {
-						log.Println("Client package pad error: ", self.conn_id, self.client_id, packBuff[:bufLen])
+						log.Println("Client package pad error: ", self.client_id, packBuff[:bufLen])
 					    return
 					}
-				    conn_man.Recv(self, string(packBuff[sz:apacLen-1]))
+				    conn_man.Recv(self, packBuff[sz:apacLen-1])
 					packBuff = packBuff[apacLen:]
 					bufLen -= apacLen
 				} else {
@@ -128,30 +135,29 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 		//log.Println("Client.Recv:", pack_len, reflect.TypeOf(pack_len))
 
 		//conn_man.Recv(self, string(buffer[0:bytesRead]))
-		//log.Println("Receive:", self.conn_id, self.client_id, string(buffer[0:bytesRead]))
+		//log.Println("Receive:", self.client_id, self.client_id, string(buffer[0:bytesRead]))
 		//a, err := conn.Write(buffer[0:bytesRead])
-		//log.Println("Write rv", self.conn_id, self.client_id, a, err)
+		//log.Println("Write rv", self.client_id, self.client_id, a, err)
 	}
 
 }
 
 type ClientAddReq struct {
-	conn net.Conn
+	cli *Client
 }
 
 type ClientDelReq struct {
-	conn_id string
+	client_id string
 }
 
 type TransReq struct {
-	conn_id   string
-	client_id string
-	data      string
+	client_id   string
+	data      []byte
 }
 
 type TransRecv struct {
 	client *Client
-	data   string
+	data   []byte
 }
 
 type ConnectionManager struct {
@@ -165,12 +171,12 @@ type ConnectionManager struct {
 }
 
 
-func (self *ConnectionManager) addClient(conn net.Conn) {
-	self.addreq <- ClientAddReq{conn}
+func (self *ConnectionManager) addClient(cli *Client) {
+	self.addreq <- ClientAddReq{cli}
 }
 
-func (self *ConnectionManager) DelClient(conn_id string) {
-	self.delreq <- ClientDelReq{conn_id}
+func (self *ConnectionManager) DelClient(client_id string) {
+	self.delreq <- ClientDelReq{client_id}
 }
 
 // goroutine
@@ -180,18 +186,15 @@ func (self *ConnectionManager) req() {
 	for {
 		select {
 		case r := <-self.addreq:
-			uuidgen := uuid.NewUUID()
-			conn_id := uuidgen.String()
-			cli := &Client{conn_id, "", r.conn, make(chan bool, 1)}
-			self.clients[conn_id] = cli
-			log.Println("Add", conn_id, len(self.clients))
-			go cli.Recv(self)
-			//go cli.Send(self, "Conn OK:"+conn_id)
+			client_id := r.cli.client_id
+			self.clients[client_id] = r.cli
+			log.Println("Add", client_id, len(self.clients))
 
 		case r := <-self.delreq:
-			conn_id := r.conn_id
-			delete(self.clients, conn_id)
-			log.Println("Remove", r.conn_id, len(self.clients))
+			client_id := r.client_id
+			// The delete function doesn't return anything, and will do nothing if the specified key doesn't exist.
+			delete(self.clients, client_id)
+			log.Println("Remove", r.client_id, len(self.clients))
 
 		}
 
@@ -199,9 +202,10 @@ func (self *ConnectionManager) req() {
 
 }
 
-func (self *ConnectionManager) Recv(cli *Client, data string) {
+func (self *ConnectionManager) Recv(cli *Client, data []byte) {
 	self.recvbuf <- TransRecv{cli, data}
 }
+
 
 // goroutine
 func (self *ConnectionManager) trans() {
@@ -209,12 +213,25 @@ func (self *ConnectionManager) trans() {
 	for {
 		select {
 		case r := <-self.sendbuf:
-			log.Println("ConnectionManager.Trans Send", r.client_id, r.conn_id, r.data)
+			log.Println("ConnectionManager.Trans Send", r.client_id, r.data)
 
 		case r := <-self.recvbuf:
-			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.client.conn_id, r.data)
-			//go r.client.Send(self, "Recv:connid"+r.client.conn_id+" Data:"+r.data)
-			go r.client.Send(self, r.data)
+			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.data)
+			//uuidgen := uuid.NewUUID()
+			//client_id := uuidgen.String()
+
+			//go r.client.Send(self, r.data)
+
+			pb := &pushproto.Talk{}
+			err := proto.Unmarshal(r.data, pb)
+			if err != nil {
+				log.Println("unmarshaling error: ", err)
+				r.client.Close(self)
+			}
+
+			//pb_type := pb.GetType()
+			log.Println(pb)
+
 
 		}
 
@@ -224,30 +241,36 @@ func (self *ConnectionManager) trans() {
 
 
 func (self *ConnectionManager) Loop(addr string) {
-	go self.req()
-	go self.trans()
-
-
 	tcpAddr, error := net.ResolveTCPAddr("tcp", addr)
 	if error != nil {
 		log.Println("Error: Could not resolve address")
-	} else {
-		netListen, error := net.Listen(tcpAddr.Network(), tcpAddr.String())
+		return
+	}
+
+
+	netListen, error := net.Listen(tcpAddr.Network(), tcpAddr.String())
+	if error != nil {
+		log.Println(error)
+		return
+	}
+	defer netListen.Close()
+
+
+	go self.req()
+	go self.trans()
+
+	for {
+		log.Println("Waiting for clients")
+		connection, error := netListen.Accept()
 		if error != nil {
-			log.Println(error)
+			log.Println("Client error: ", error)
 		} else {
-			defer netListen.Close()
-
-			for {
-				log.Println("Waiting for clients")
-				connection, error := netListen.Accept()
-				if error != nil {
-					log.Println("Client error: ", error)
-				} else {
-					self.addClient(connection)
-
-				}
+			cli := &Client{
+				client_id: "NULL",
+				conn: connection,
+				sending: make(chan bool, 1),
 			}
+			go cli.Recv(self)
 		}
 	}
 

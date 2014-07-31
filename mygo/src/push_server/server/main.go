@@ -18,6 +18,7 @@ func main() {
 
 }
 
+// 规整的log
 
 // rediscluster
 // 支持apply, 一次多个命令过去,并统一获得返回
@@ -27,3 +28,6 @@ func main() {
 // 调整exported函数
 
 
+
+// Client close show log if not map
+// write once not enough

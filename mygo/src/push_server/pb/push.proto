@@ -1,0 +1,36 @@
+package pushproto;
+
+message Talk {
+	enum ProType {
+	     SYN = 1;
+	     SYNACK = 2;
+	     RESET = 3;
+	     REROUTE = 4;
+	     HEART = 5;
+	     ACK = 6;
+	     BUSSINESS = 7;
+
+
+	}
+
+	required ProType type = 1;
+	optional string clientid = 2;
+	optional int32 msgid =  3;
+	optional int32 ackmsgid =  4;
+
+	// syn ext
+	optional string auth =  1001;
+	optional string installid =  1002;
+	optional string clienttype =  1003;
+	optional string clientver =  1004;
+
+
+	// bussiness ext
+	optional int32 ziptype =  1500;
+	optional int32 datatype =  1501;
+	optional int32 bussdata =  1502;
+
+
+}
+
+// protoc --go_out=. push.proto
