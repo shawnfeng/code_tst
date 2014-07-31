@@ -164,17 +164,8 @@ type ConnectionManager struct {
 	recvbuf chan TransRecv
 }
 
-func (self *ConnectionManager) Init() {
-	self.sendbuf = make(chan TransReq, 9)
-	self.recvbuf = make(chan TransRecv, 9)
 
-	self.addreq = make(chan ClientAddReq, 0)
-	self.delreq = make(chan ClientDelReq, 0)
-	self.clients = make(map[string]*Client)
-
-}
-
-func (self *ConnectionManager) AddClient(conn net.Conn) {
+func (self *ConnectionManager) addClient(conn net.Conn) {
 	self.addreq <- ClientAddReq{conn}
 }
 
@@ -183,7 +174,7 @@ func (self *ConnectionManager) DelClient(conn_id string) {
 }
 
 // goroutine
-func (self *ConnectionManager) Req() {
+func (self *ConnectionManager) req() {
 
 	log.Println("Req Start")
 	for {
@@ -213,7 +204,7 @@ func (self *ConnectionManager) Recv(cli *Client, data string) {
 }
 
 // goroutine
-func (self *ConnectionManager) Trans() {
+func (self *ConnectionManager) trans() {
 	log.Println("Trans Start")
 	for {
 		select {
@@ -226,6 +217,51 @@ func (self *ConnectionManager) Trans() {
 			go r.client.Send(self, r.data)
 
 		}
+
+	}
+
+}
+
+
+func (self *ConnectionManager) Loop(addr string) {
+	go self.req()
+	go self.trans()
+
+
+	tcpAddr, error := net.ResolveTCPAddr("tcp", addr)
+	if error != nil {
+		log.Println("Error: Could not resolve address")
+	} else {
+		netListen, error := net.Listen(tcpAddr.Network(), tcpAddr.String())
+		if error != nil {
+			log.Println(error)
+		} else {
+			defer netListen.Close()
+
+			for {
+				log.Println("Waiting for clients")
+				connection, error := netListen.Accept()
+				if error != nil {
+					log.Println("Client error: ", error)
+				} else {
+					self.addClient(connection)
+
+				}
+			}
+		}
+	}
+
+}
+
+
+func NewConnectionManager() *ConnectionManager {
+	return &ConnectionManager {
+		sendbuf: make(chan TransReq, 9),
+		recvbuf: make(chan TransRecv, 9),
+
+		addreq: make(chan ClientAddReq, 0),
+		delreq: make(chan ClientDelReq, 0),
+		clients: make(map[string]*Client),
 
 	}
 

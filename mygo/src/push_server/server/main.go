@@ -2,46 +2,28 @@ package main
 
 import (
 	//"fmt"
-	"log"
-	"net"
+//	"log"
+
 	"push_server/tcpconn"
 
 )
 
 
 func main() {
-	var conn_man tcpconn.ConnectionManager
-	conn_man.Init()
-	go conn_man.Req()
-	go conn_man.Trans()
+
+	conn_man := tcpconn.NewConnectionManager()
 
 	service := ":9988"
-	tcpAddr, error := net.ResolveTCPAddr("tcp", service)
-	if error != nil {
-		log.Println("Error: Could not resolve address")
-	} else {
-		netListen, error := net.Listen(tcpAddr.Network(), tcpAddr.String())
-		if error != nil {
-			log.Println(error)
-		} else {
-			defer netListen.Close()
+	conn_man.Loop(service)
 
-			for {
-				log.Println("Waiting for clients")
-				connection, error := netListen.Accept()
-				if error != nil {
-					log.Println("Client error: ", error)
-				} else {
-					conn_man.AddClient(connection)
-
-				}
-			}
-		}
-	}
 }
 
 
 // rediscluster
 // 支持apply, 一次多个命令过去,并统一获得返回
+// rediscluster 增删也采用req的方式进行
 
 // package put in github
+// 调整exported函数
+
+
