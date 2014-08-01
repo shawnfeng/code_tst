@@ -9,6 +9,7 @@ import (
 
 // ext lib
 import (
+	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -36,10 +37,18 @@ func Read(conn net.Conn) {
 
 func pakSyn(conn net.Conn) {
 
+	uuidgen := uuid.NewUUID()
+	installid := uuidgen.String()
+
 	syn := &pushproto.Talk{
 		Type: pushproto.Talk_SYN.Enum(),
 		Msgid: proto.Int32(17),
+		Appid: proto.String("376083b4ee34c038f9cd90c5cff364e8"),
+		Installid: proto.String(installid),
 		Auth: proto.String("Fuck"),
+		Clienttype: proto.String("Android"),
+		Clientver: proto.String("1.0.0"),
+
 	}
 
 
@@ -120,6 +129,7 @@ func main() {
 
 	//  tst pad err
 	conn := connect()
+	pakSyn(conn)
 	pakSyn(conn)
 	var input string
 	fmt.Scanln(&input)

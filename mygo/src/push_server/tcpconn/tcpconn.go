@@ -5,12 +5,13 @@ package tcpconn
 
 // base lib
 import (
-	//"fmt"
+	"fmt"
 	"log"
 	"net"
 	"reflect"
 	"time"
 	"encoding/binary"
+	"crypto/sha1"
 )
 
 // ext lib
@@ -22,6 +23,7 @@ import (
 // my lib
 import (
 	"push_server/pb"
+	"push_server/util"
 
 )
 
@@ -207,6 +209,40 @@ func (self *ConnectionManager) Recv(cli *Client, data []byte) {
 }
 
 
+func (self *ConnectionManager) Proto(r *TransRecv) {
+	pb := &pushproto.Talk{}
+	err := proto.Unmarshal(r.data, pb)
+	if err != nil {
+		log.Println("unmarshaling error: ", err)
+		r.client.Close(self)
+	}
+
+	util.LogDebug("recv proto: %s", pb)
+	pb_type := pb.GetType()
+	if pb_type == pushproto.Talk_SYN {
+		if r.client.client_id != "NULL" {
+			// 已经建立了连接，当前状态是ESTABLISHED，不是TCP_READY
+			// 直接丢弃该协议
+			util.LogWarn("conn: %s state: ESTABLISHED can not change SYN_RCVD", r.client.client_id)
+
+		} else {
+			appid := pb.GetAppid()
+			installid := pb.GetInstallid()
+			sec := "9b0319bc5c05055283cee2533abab270"
+
+
+			h := sha1.Sum([]byte(appid+installid+sec))
+			cli_id := fmt.Sprintf("%x", h)
+			r.client.client_id = cli_id
+
+			self.addClient(r.client)
+		}
+
+	}
+
+}
+
+
 // goroutine
 func (self *ConnectionManager) trans() {
 	log.Println("Trans Start")
@@ -221,17 +257,7 @@ func (self *ConnectionManager) trans() {
 			//client_id := uuidgen.String()
 
 			//go r.client.Send(self, r.data)
-
-			pb := &pushproto.Talk{}
-			err := proto.Unmarshal(r.data, pb)
-			if err != nil {
-				log.Println("unmarshaling error: ", err)
-				r.client.Close(self)
-			}
-
-			//pb_type := pb.GetType()
-			log.Println(pb)
-
+			self.Proto(&r)
 
 		}
 
@@ -260,7 +286,7 @@ func (self *ConnectionManager) Loop(addr string) {
 	go self.trans()
 
 	for {
-		log.Println("Waiting for clients")
+		util.LogInfo("Waiting for clients")
 		connection, error := netListen.Accept()
 		if error != nil {
 			log.Println("Client error: ", error)

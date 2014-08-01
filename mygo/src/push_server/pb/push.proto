@@ -20,15 +20,16 @@ message Talk {
 
 	// syn ext
 	optional string auth =  1001;
-	optional string installid =  1002;
-	optional string clienttype =  1003;
-	optional string clientver =  1004;
+	optional string appid =  1002;
+	optional string installid =  1003;
+	optional string clienttype =  1004;
+	optional string clientver =  1005;
 
 
 	// bussiness ext
 	optional int32 ziptype =  1500;
 	optional int32 datatype =  1501;
-	optional int32 bussdata =  1502;
+	optional bytes bussdata =  1502;
 
 
 }

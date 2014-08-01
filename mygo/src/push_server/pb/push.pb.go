@@ -75,13 +75,14 @@ type Talk struct {
 	Ackmsgid *int32        `protobuf:"varint,4,opt,name=ackmsgid" json:"ackmsgid,omitempty"`
 	// syn ext
 	Auth       *string `protobuf:"bytes,1001,opt,name=auth" json:"auth,omitempty"`
-	Installid  *string `protobuf:"bytes,1002,opt,name=installid" json:"installid,omitempty"`
-	Clienttype *string `protobuf:"bytes,1003,opt,name=clienttype" json:"clienttype,omitempty"`
-	Clientver  *string `protobuf:"bytes,1004,opt,name=clientver" json:"clientver,omitempty"`
+	Appid      *string `protobuf:"bytes,1002,opt,name=appid" json:"appid,omitempty"`
+	Installid  *string `protobuf:"bytes,1003,opt,name=installid" json:"installid,omitempty"`
+	Clienttype *string `protobuf:"bytes,1004,opt,name=clienttype" json:"clienttype,omitempty"`
+	Clientver  *string `protobuf:"bytes,1005,opt,name=clientver" json:"clientver,omitempty"`
 	// bussiness ext
 	Ziptype          *int32 `protobuf:"varint,1500,opt,name=ziptype" json:"ziptype,omitempty"`
 	Datatype         *int32 `protobuf:"varint,1501,opt,name=datatype" json:"datatype,omitempty"`
-	Bussdata         *int32 `protobuf:"varint,1502,opt,name=bussdata" json:"bussdata,omitempty"`
+	Bussdata         []byte `protobuf:"bytes,1502,opt,name=bussdata" json:"bussdata,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -124,6 +125,13 @@ func (m *Talk) GetAuth() string {
 	return ""
 }
 
+func (m *Talk) GetAppid() string {
+	if m != nil && m.Appid != nil {
+		return *m.Appid
+	}
+	return ""
+}
+
 func (m *Talk) GetInstallid() string {
 	if m != nil && m.Installid != nil {
 		return *m.Installid
@@ -159,11 +167,11 @@ func (m *Talk) GetDatatype() int32 {
 	return 0
 }
 
-func (m *Talk) GetBussdata() int32 {
-	if m != nil && m.Bussdata != nil {
-		return *m.Bussdata
+func (m *Talk) GetBussdata() []byte {
+	if m != nil {
+		return m.Bussdata
 	}
-	return 0
+	return nil
 }
 
 func init() {

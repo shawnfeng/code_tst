@@ -31,3 +31,8 @@ func main() {
 
 // Client close show log if not map
 // write once not enough
+
+// num use const config,not direct use
+
+// log level
+// connmanager req/recv/send use one goroutine?
