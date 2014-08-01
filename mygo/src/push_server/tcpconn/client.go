@@ -40,6 +40,8 @@ type Client struct {
 	conn        net.Conn
 	sending     chan bool
 
+	errmsg      string
+
 	manager     *ConnectionManager
 }
 
@@ -55,6 +57,7 @@ func NewClient(m *ConnectionManager, c net.Conn) *Client {
 		client_id: tmp_client_id,
 		conn: c,
 		sending: make(chan bool, 1),
+		errmsg: "",
 		manager: m,
 	}
 
@@ -79,6 +82,20 @@ func (self *Client) Close() {
 	self.changeState(State_CLOSE)
 
 }
+
+
+
+func (self *Client) CloseErr() {
+	util.LogDebug("CloseErr errmsg:%s", self.errmsg)
+	if self.errmsg != "" {
+		self.sendERR(self.errmsg)
+	} else {
+		self.Close()
+	}
+
+}
+
+
 
 //func (self *Client) setClientid(s string) bool {
 //}
@@ -108,10 +125,20 @@ func (self *Client) sendUnLock() {
 	<-self.sending
 }
 
-// goroutine
 func (self *Client) Send(s []byte) {
-	log.Println("Client.Send", self.client_id, s)
+	go self.sendData(s, false)
 
+}
+
+func (self *Client) SendClose(s []byte) {
+	go self.sendData(s, true)
+
+}
+
+
+// goroutine
+func (self *Client) sendData(s []byte, isclose bool) {
+	util.LogDebug("sendData %s %d", s, isclose)
 	self.sendLock()
 	defer self.sendUnLock()
 
@@ -125,6 +152,10 @@ func (self *Client) Send(s []byte) {
 		return
 	}
 
+	if isclose {
+		self.Close()
+	}
+
 }
 
 // goroutine
@@ -136,7 +167,8 @@ func (self *Client) Recv() {
 	conn := self.conn
 	log.Println(reflect.TypeOf(conn))
 
-	defer self.Close()
+
+	defer self.CloseErr()
 
 	for {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
@@ -163,17 +195,24 @@ func (self *Client) Recv() {
 				} else if sz == 0 {
 				    break
 				}
+
+				util.LogDebug("Client Recv pacLen %d", pacLen)
 				// must < 5K
 				if pacLen > 1024 * 5 {
 					log.Println("Client package too long error: ", self.client_id, packBuff[:bufLen])
+					self.errmsg = "package too long"
 					return
-				}
+				} else if pacLen == 0 {
+					self.errmsg = "package len 0"
+					return
+				} 
 
 				apacLen := uint64(sz)+pacLen+1
 				if bufLen >= apacLen {
 				    pad := packBuff[apacLen-1]
 					if pad != 0 {
 						log.Println("Client package pad error: ", self.client_id, packBuff[:bufLen])
+						self.errmsg = "package pad error"
 					    return
 					}
 				    self.proto(packBuff[sz:apacLen-1])

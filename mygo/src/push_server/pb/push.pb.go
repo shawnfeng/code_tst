@@ -30,16 +30,20 @@ const (
 	Talk_HEART     Talk_ProType = 5
 	Talk_ACK       Talk_ProType = 6
 	Talk_BUSSINESS Talk_ProType = 7
+	Talk_ERR       Talk_ProType = 100
+	Talk_ECHO      Talk_ProType = 101
 )
 
 var Talk_ProType_name = map[int32]string{
-	1: "SYN",
-	2: "SYNACK",
-	3: "RESET",
-	4: "REROUTE",
-	5: "HEART",
-	6: "ACK",
-	7: "BUSSINESS",
+	1:   "SYN",
+	2:   "SYNACK",
+	3:   "RESET",
+	4:   "REROUTE",
+	5:   "HEART",
+	6:   "ACK",
+	7:   "BUSSINESS",
+	100: "ERR",
+	101: "ECHO",
 }
 var Talk_ProType_value = map[string]int32{
 	"SYN":       1,
@@ -49,6 +53,8 @@ var Talk_ProType_value = map[string]int32{
 	"HEART":     5,
 	"ACK":       6,
 	"BUSSINESS": 7,
+	"ERR":       100,
+	"ECHO":      101,
 }
 
 func (x Talk_ProType) Enum() *Talk_ProType {
@@ -83,6 +89,7 @@ type Talk struct {
 	Ziptype          *int32 `protobuf:"varint,1500,opt" json:"Ziptype,omitempty"`
 	Datatype         *int32 `protobuf:"varint,1501,opt" json:"Datatype,omitempty"`
 	Bussdata         []byte `protobuf:"bytes,1502,opt" json:"Bussdata,omitempty"`
+	Extdata          []byte `protobuf:"bytes,2000,opt" json:"Extdata,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -170,6 +177,13 @@ func (m *Talk) GetDatatype() int32 {
 func (m *Talk) GetBussdata() []byte {
 	if m != nil {
 		return m.Bussdata
+	}
+	return nil
+}
+
+func (m *Talk) GetExtdata() []byte {
+	if m != nil {
+		return m.Extdata
 	}
 	return nil
 }

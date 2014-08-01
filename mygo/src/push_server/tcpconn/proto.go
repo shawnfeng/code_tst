@@ -20,6 +20,20 @@ import (
 
 )
 
+func (self *Client) sendERR(errmsg string) {
+	//util.LogDebug("errmsg:%s", errmsg)
+	errpb := &pushproto.Talk{
+		Type: pushproto.Talk_ERR.Enum(),
+		Extdata: []byte(errmsg),
+	}
+
+	data, _ := proto.Marshal(errpb)
+	self.SendClose(util.Packdata(data))
+
+}
+
+
+
 func (self *Client) sendSYNACK(client_id string, msgid int32) {
 	synack := &pushproto.Talk{
 		Type: pushproto.Talk_SYNACK.Enum(),
@@ -28,7 +42,7 @@ func (self *Client) sendSYNACK(client_id string, msgid int32) {
 	}
 
 	data, _ := proto.Marshal(synack)
-	go self.Send(util.Packdata(data))
+	self.Send(util.Packdata(data))
 
 }
 
@@ -72,7 +86,9 @@ func (self *Client) proto(data []byte) {
 	err := proto.Unmarshal(data, pb)
 	if err != nil {
 		log.Println("unmarshaling error: ", err)
-		self.Close()
+		self.errmsg = "package unmarshaling error"
+		self.CloseErr()
+		return
 	}
 
 	util.LogDebug("recv proto: %s", pb)

@@ -33,15 +33,15 @@ type ClientDelReq struct {
 	client_id string
 }
 
-type TransReq struct {
+type TransSend struct {
 	client_id   string
 	data      []byte
 }
 
-type TransRecv struct {
-	client *Client
-	data   []byte
-}
+//type TransRecv struct {
+//	client *Client
+//	data   []byte
+//}
 
 type ConnectionManager struct {
 	clients map[string]*Client
@@ -49,8 +49,8 @@ type ConnectionManager struct {
 	addreq chan ClientAddReq
 	delreq chan ClientDelReq
 
-	sendbuf chan TransReq
-	recvbuf chan TransRecv
+	sendbuf chan TransSend
+//	recvbuf chan TransRecv
 }
 
 
@@ -80,15 +80,19 @@ func (self *ConnectionManager) req() {
 			log.Println("Remove", r.client_id, len(self.clients))
 
 
+		case r := <-self.sendbuf:
+			log.Println("ConnectionManager.Trans Send", r.client_id, r.data)
+
+
 		}
 
 	}
 
 }
 
-func (self *ConnectionManager) Recv(cli *Client, data []byte) {
-	self.recvbuf <- TransRecv{cli, data}
-}
+//func (self *ConnectionManager) Recv(cli *Client, data []byte) {
+//	self.recvbuf <- TransRecv{cli, data}
+//}
 
 
 
@@ -100,8 +104,8 @@ func (self *ConnectionManager) trans() {
 		case r := <-self.sendbuf:
 			log.Println("ConnectionManager.Trans Send", r.client_id, r.data)
 
-		case r := <-self.recvbuf:
-			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.data)
+//		case r := <-self.recvbuf:
+//			log.Println("ConnectionManager.Trans Recv", r.client.client_id, r.data)
 			//uuidgen := uuid.NewUUID()
 			//client_id := uuidgen.String()
 
@@ -132,7 +136,7 @@ func (self *ConnectionManager) Loop(addr string) {
 
 
 	go self.req()
-	go self.trans()
+	//go self.trans()
 
 	for {
 		util.LogInfo("Waiting for clients")
@@ -149,8 +153,8 @@ func (self *ConnectionManager) Loop(addr string) {
 
 func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager {
-		sendbuf: make(chan TransReq, 9),
-		recvbuf: make(chan TransRecv, 9),
+		sendbuf: make(chan TransSend, 9),
+//		recvbuf: make(chan TransRecv, 9),
 
 		addreq: make(chan ClientAddReq, 0),
 		delreq: make(chan ClientDelReq, 0),

@@ -11,6 +11,9 @@ message Talk {
 	     BUSSINESS = 7;
 
 
+	     ERR = 100;
+	     ECHO = 101;
+
 	}
 
 	required ProType Type = 1;
@@ -30,6 +33,8 @@ message Talk {
 	optional int32 Ziptype =  1500;
 	optional int32 Datatype =  1501;
 	optional bytes Bussdata =  1502;
+
+	optional bytes Extdata =  2000;
 
 
 }
