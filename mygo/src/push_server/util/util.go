@@ -2,6 +2,7 @@ package util
 
 import (
 	"log"
+	"encoding/binary"
 )
 
 func LogDebug(format string, v ...interface{}) {
@@ -23,5 +24,21 @@ func LogError(format string, v ...interface{}) {
 func LogFatal(format string, v ...interface{}) {
 	log.Printf("[FATAL] "+format, v...)
 }
+
+
+func Packdata(data []byte) []byte {
+	sendbuff := make([]byte, 0)
+	// no pad
+	var pacLen uint64 = uint64(len(data))
+	buff := make([]byte, 20)
+	rv := binary.PutUvarint(buff, pacLen)
+
+	sendbuff = append(sendbuff, buff[:rv]...) // len
+	sendbuff = append(sendbuff, data...) //data
+	sendbuff = append(sendbuff, 0) //pad
+
+	return sendbuff
+}
+
 
 

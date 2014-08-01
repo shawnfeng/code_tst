@@ -69,20 +69,20 @@ func (x *Talk_ProType) UnmarshalJSON(data []byte) error {
 }
 
 type Talk struct {
-	Type     *Talk_ProType `protobuf:"varint,1,req,name=type,enum=pushproto.Talk_ProType" json:"type,omitempty"`
-	Clientid *string       `protobuf:"bytes,2,opt,name=clientid" json:"clientid,omitempty"`
-	Msgid    *int32        `protobuf:"varint,3,opt,name=msgid" json:"msgid,omitempty"`
-	Ackmsgid *int32        `protobuf:"varint,4,opt,name=ackmsgid" json:"ackmsgid,omitempty"`
+	Type     *Talk_ProType `protobuf:"varint,1,req,enum=pushproto.Talk_ProType" json:"Type,omitempty"`
+	Clientid *string       `protobuf:"bytes,2,opt" json:"Clientid,omitempty"`
+	Msgid    *int32        `protobuf:"varint,3,opt" json:"Msgid,omitempty"`
+	Ackmsgid *int32        `protobuf:"varint,4,opt" json:"Ackmsgid,omitempty"`
 	// syn ext
-	Auth       *string `protobuf:"bytes,1001,opt,name=auth" json:"auth,omitempty"`
-	Appid      *string `protobuf:"bytes,1002,opt,name=appid" json:"appid,omitempty"`
-	Installid  *string `protobuf:"bytes,1003,opt,name=installid" json:"installid,omitempty"`
-	Clienttype *string `protobuf:"bytes,1004,opt,name=clienttype" json:"clienttype,omitempty"`
-	Clientver  *string `protobuf:"bytes,1005,opt,name=clientver" json:"clientver,omitempty"`
+	Auth       *string `protobuf:"bytes,1001,opt" json:"Auth,omitempty"`
+	Appid      *string `protobuf:"bytes,1002,opt" json:"Appid,omitempty"`
+	Installid  *string `protobuf:"bytes,1003,opt" json:"Installid,omitempty"`
+	Clienttype *string `protobuf:"bytes,1004,opt" json:"Clienttype,omitempty"`
+	Clientver  *string `protobuf:"bytes,1005,opt" json:"Clientver,omitempty"`
 	// bussiness ext
-	Ziptype          *int32 `protobuf:"varint,1500,opt,name=ziptype" json:"ziptype,omitempty"`
-	Datatype         *int32 `protobuf:"varint,1501,opt,name=datatype" json:"datatype,omitempty"`
-	Bussdata         []byte `protobuf:"bytes,1502,opt,name=bussdata" json:"bussdata,omitempty"`
+	Ziptype          *int32 `protobuf:"varint,1500,opt" json:"Ziptype,omitempty"`
+	Datatype         *int32 `protobuf:"varint,1501,opt" json:"Datatype,omitempty"`
+	Bussdata         []byte `protobuf:"bytes,1502,opt" json:"Bussdata,omitempty"`
 	XXX_unrecognized []byte `json:"-"`
 }
 

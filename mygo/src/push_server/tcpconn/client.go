@@ -5,68 +5,130 @@ package tcpconn
 
 // base lib
 import (
+	"fmt"
 	"log"
 	"net"
 	"reflect"
 	"time"
 	"encoding/binary"
+	"crypto/sha1"
 )
 
 // ext lib
 import (
-	//"code.google.com/p/go-uuid/uuid"
+	"code.google.com/p/go-uuid/uuid"
 )
 
 // my lib
 import (
-
+	"push_server/util"
 
 )
 
+const (
+	State_CLOSE       string = "CLOSE"
+	State_TCP_READY   string = "TCP_READY"
+	State_SYN_RCVD    string = "SYN_RCVD"
+	State_ESTABLISHED string = "ESTABLISHED"
+
+)
+
+
 type Client struct {
-	client_id   string
-	conn      net.Conn
-	sending   chan bool
+	state       string // CLOSE TCP_READY SYN_RCVD ESTABLISHED
+	client_id   string // CLOSE TCP_READY SYN_RCVD is tmp id
+	conn        net.Conn
+	sending     chan bool
+
+	manager     *ConnectionManager
 }
 
-func (self *Client) Close(conn_man *ConnectionManager) {
-	conn_man.DelClient(self.client_id)
-	self.conn.Close()
+func NewClient(m *ConnectionManager, c net.Conn) *Client {
+	// 分配一个临时的编号，方便问题查询定位
+	uuidgen := uuid.NewUUID()
+	tmp_client_id := uuidgen.String()
+	h := sha1.Sum([]byte(tmp_client_id))
+	tmp_client_id = fmt.Sprintf("tmp/%x", h)
+
+	var cli *Client = &Client {
+		state: State_CLOSE,
+		client_id: tmp_client_id,
+		conn: c,
+		sending: make(chan bool, 1),
+		manager: m,
+	}
+
+	cli.changeState(State_TCP_READY)
+	//util.LogInfo("new client state:%s id:%s", cli.state, tmp_client_id)
+
+	go cli.Recv()
+
+	return cli
+
+}
+
+func (self *Client) Close() {
+	util.LogInfo("close client state:%s id:%s", self.state, self.client_id)
+
+	if self.state == State_ESTABLISHED {
+		self.manager.DelClient(self.client_id)
+	}
+	if err := self.conn.Close(); err != nil {
+		util.LogWarn("Close net.Conn err: %s", err)
+	}
+	self.changeState(State_CLOSE)
+
+}
+
+//func (self *Client) setClientid(s string) bool {
+//}
+
+func (self *Client) isState(s string) bool {
+	return s == self.state
+
+}
+
+func (self *Client) changeState(s string) {
+	if s != State_CLOSE && s != State_TCP_READY && s !=	State_SYN_RCVD && s != State_ESTABLISHED {
+		util.LogError("error change client id:%s old:%s new:%s", self.client_id, self.state, s)
+	} else {
+		old := self.state
+		self.state = s
+		util.LogInfo("change client id:%s old:%s new:%s", self.client_id, old, s)
+	}
+
 
 }
 
 func (self *Client) sendLock() {
 	self.sending <- true
-
-	log.Println("Client.sendLock", len(self.sending))
 }
 
 func (self *Client) sendUnLock() {
 	<-self.sending
-	log.Println("Client.UnsendLock", len(self.sending))
 }
 
 // goroutine
-func (self *Client) Send(conn_man *ConnectionManager, s string) {
+func (self *Client) Send(s []byte) {
 	log.Println("Client.Send", self.client_id, s)
 
 	self.sendLock()
 	defer self.sendUnLock()
 
 	self.conn.SetWriteDeadline(time.Now().Add(time.Duration(5) * time.Second))
-	a, err := self.conn.Write([]byte(s))
+	a, err := self.conn.Write(s)
 	log.Println("Client.Send Write rv", self.client_id, a, err)
 
 	if err != nil {
 		log.Println("Client write error: ", self.client_id, err)
-		self.Close(conn_man)
+		self.Close()
 		return
 	}
 
 }
 
 // goroutine
-func (self *Client) Recv(conn_man *ConnectionManager) {
+func (self *Client) Recv() {
 	buffer := make([]byte, 2048)
 	packBuff := make([]byte, 0)
 	var bufLen uint64 = 0
@@ -74,7 +136,7 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 	conn := self.conn
 	log.Println(reflect.TypeOf(conn))
 
-	defer self.Close(conn_man)
+	defer self.Close()
 
 	for {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
@@ -114,7 +176,7 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 						log.Println("Client package pad error: ", self.client_id, packBuff[:bufLen])
 					    return
 					}
-				    conn_man.Recv(self, packBuff[sz:apacLen-1])
+				    self.proto(packBuff[sz:apacLen-1])
 					packBuff = packBuff[apacLen:]
 					bufLen -= apacLen
 				} else {
@@ -128,14 +190,6 @@ func (self *Client) Recv(conn_man *ConnectionManager) {
 
 		}
 
-
-
-		//log.Println("Client.Recv:", pack_len, reflect.TypeOf(pack_len))
-
-		//conn_man.Recv(self, string(buffer[0:bytesRead]))
-		//log.Println("Receive:", self.client_id, self.client_id, string(buffer[0:bytesRead]))
-		//a, err := conn.Write(buffer[0:bytesRead])
-		//log.Println("Write rv", self.client_id, self.client_id, a, err)
 	}
 
 }

@@ -13,23 +13,23 @@ message Talk {
 
 	}
 
-	required ProType type = 1;
-	optional string clientid = 2;
-	optional int32 msgid =  3;
-	optional int32 ackmsgid =  4;
+	required ProType Type = 1;
+	optional string Clientid = 2;
+	optional int32 Msgid =  3;
+	optional int32 Ackmsgid =  4;
 
 	// syn ext
-	optional string auth =  1001;
-	optional string appid =  1002;
-	optional string installid =  1003;
-	optional string clienttype =  1004;
-	optional string clientver =  1005;
+	optional string Auth =  1001;
+	optional string Appid =  1002;
+	optional string Installid =  1003;
+	optional string Clienttype =  1004;
+	optional string Clientver =  1005;
 
 
 	// bussiness ext
-	optional int32 ziptype =  1500;
-	optional int32 datatype =  1501;
-	optional bytes bussdata =  1502;
+	optional int32 Ziptype =  1500;
+	optional int32 Datatype =  1501;
+	optional bytes Bussdata =  1502;
 
 
 }

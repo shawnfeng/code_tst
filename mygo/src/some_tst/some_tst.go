@@ -76,7 +76,21 @@ func tst_struct_init() {
 
 }
 
+func tst_const() {
+	type Talk_ProType int32
+
+	const (
+		Talk_SYN       Talk_ProType = 1
+		Talk_SYNACK    Talk_ProType = 2
+	)
+
+	a := Talk_SYN
+	fmt.Println(a)
+
+}
+
 func main() {
 	//tst_assert()
-	tst_struct_init()
+	//tst_struct_init()
+	tst_const()
 }

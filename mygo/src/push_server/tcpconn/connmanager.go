@@ -5,21 +5,21 @@ package tcpconn
 
 // base lib
 import (
-	"fmt"
+//	"fmt"
 	"log"
 	"net"
-	"crypto/sha1"
+//	"crypto/sha1"
 )
 
 // ext lib
 import (
 	//"code.google.com/p/go-uuid/uuid"
-	"code.google.com/p/goprotobuf/proto"
+//	"code.google.com/p/goprotobuf/proto"
 )
 
 // my lib
 import (
-	"push_server/pb"
+//	"push_server/pb"
 	"push_server/util"
 
 )
@@ -79,6 +79,7 @@ func (self *ConnectionManager) req() {
 			delete(self.clients, client_id)
 			log.Println("Remove", r.client_id, len(self.clients))
 
+
 		}
 
 	}
@@ -89,40 +90,6 @@ func (self *ConnectionManager) Recv(cli *Client, data []byte) {
 	self.recvbuf <- TransRecv{cli, data}
 }
 
-
-func (self *ConnectionManager) Proto(r *TransRecv) {
-	pb := &pushproto.Talk{}
-	err := proto.Unmarshal(r.data, pb)
-	if err != nil {
-		log.Println("unmarshaling error: ", err)
-		r.client.Close(self)
-	}
-
-	util.LogDebug("recv proto: %s", pb)
-	pb_type := pb.GetType()
-	if pb_type == pushproto.Talk_SYN {
-		if r.client.client_id != "NULL" {
-			// 已经建立了连接，当前状态是ESTABLISHED，不是TCP_READY
-			// 直接丢弃该协议
-			util.LogWarn("conn: %s state: ESTABLISHED can not change SYN_RCVD", r.client.client_id)
-
-		} else {
-			appid := pb.GetAppid()
-			installid := pb.GetInstallid()
-			sec := "9b0319bc5c05055283cee2533abab270"
-
-
-			h := sha1.Sum([]byte(appid+installid+sec))
-			cli_id := fmt.Sprintf("%x", h)
-			r.client.client_id = cli_id
-
-			self.addClient(r.client)
-
-		}
-
-	}
-
-}
 
 
 // goroutine
@@ -139,7 +106,7 @@ func (self *ConnectionManager) trans() {
 			//client_id := uuidgen.String()
 
 			//go r.client.Send(self, r.data)
-			self.Proto(&r)
+			//self.Proto(&r)
 
 		}
 
@@ -173,12 +140,7 @@ func (self *ConnectionManager) Loop(addr string) {
 		if error != nil {
 			log.Println("Client error: ", error)
 		} else {
-			cli := &Client{
-				client_id: "NULL",
-				conn: connection,
-				sending: make(chan bool, 1),
-			}
-			go cli.Recv(self)
+			NewClient(self, connection)
 		}
 	}
 
