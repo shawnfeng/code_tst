@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"reflect"
+	//"reflect"
 	"time"
 	"encoding/binary"
 	"crypto/sha1"
@@ -39,6 +39,7 @@ type Client struct {
 	client_id   string // CLOSE TCP_READY SYN_RCVD is tmp id
 	conn        net.Conn
 	sending     chan bool
+	remoteaddr  string
 
 	errmsg      string
 
@@ -57,6 +58,7 @@ func NewClient(m *ConnectionManager, c net.Conn) *Client {
 		client_id: tmp_client_id,
 		conn: c,
 		sending: make(chan bool, 1),
+		remoteaddr: c.RemoteAddr().String(),
 		errmsg: "",
 		manager: m,
 	}
@@ -71,15 +73,18 @@ func NewClient(m *ConnectionManager, c net.Conn) *Client {
 }
 
 func (self *Client) Close() {
-	util.LogInfo("close client state:%s id:%s", self.state, self.client_id)
+	util.LogInfo("close client %s state:%s id:%s", self.remoteaddr, self.state, self.client_id)
 
 	if self.state == State_ESTABLISHED {
 		self.manager.DelClient(self.client_id)
 	}
-	if err := self.conn.Close(); err != nil {
-		util.LogWarn("Close net.Conn err: %s", err)
+
+	if self.state != State_CLOSE {
+		if err := self.conn.Close(); err != nil {
+			util.LogWarn("Close net.Conn err: %s", err)
+		}
+		self.changeState(State_CLOSE)
 	}
-	self.changeState(State_CLOSE)
 
 }
 
@@ -107,11 +112,11 @@ func (self *Client) isState(s string) bool {
 
 func (self *Client) changeState(s string) {
 	if s != State_CLOSE && s != State_TCP_READY && s !=	State_SYN_RCVD && s != State_ESTABLISHED {
-		util.LogError("error change client id:%s old:%s new:%s", self.client_id, self.state, s)
+		util.LogError("error change addr:%s client id:%s old:%s new:%s", self.remoteaddr, self.client_id, self.state, s)
 	} else {
 		old := self.state
 		self.state = s
-		util.LogInfo("change client id:%s old:%s new:%s", self.client_id, old, s)
+		util.LogInfo("change addr:%s client id:%s old:%s new:%s", self.remoteaddr, self.client_id, old, s)
 	}
 
 
@@ -138,7 +143,7 @@ func (self *Client) SendClose(s []byte) {
 
 // goroutine
 func (self *Client) sendData(s []byte, isclose bool) {
-	util.LogDebug("sendData %s %d", s, isclose)
+	//util.LogDebug("sendData %s %d", s, isclose)
 	self.sendLock()
 	defer self.sendUnLock()
 
@@ -165,7 +170,7 @@ func (self *Client) Recv() {
 	var bufLen uint64 = 0
 
 	conn := self.conn
-	log.Println(reflect.TypeOf(conn))
+	//log.Println(reflect.TypeOf(conn))
 
 
 	defer self.CloseErr()

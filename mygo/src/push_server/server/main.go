@@ -10,6 +10,8 @@ import (
 
 
 func main() {
+	tcpconn.StartHttp()
+
 
 	conn_man := tcpconn.NewConnectionManager()
 

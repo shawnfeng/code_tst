@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 	"errors"
 	"encoding/binary"
 )
@@ -44,7 +45,7 @@ func pakSyn(conn net.Conn) {
 
 	syn := &pushproto.Talk{
 		Type: pushproto.Talk_SYN.Enum(),
-		Msgid: proto.Int32(17),
+		Msgid: proto.Int64(17),
 		Appid: proto.String("376083b4ee34c038f9cd90c5cff364e8"),
 		Installid: proto.String(installid),
 		Auth: proto.String("Fuck"),
@@ -155,7 +156,7 @@ func ReadOnce(conn net.Conn) ([]byte, error) {
 }
 
 
-func tstErr(tstfun string, sb []byte, checkFun func(*pushproto.Talk) ) {
+func tstErr(tstfun string, sb []byte, readtimes int, checkFun func(*pushproto.Talk) ) {
 	conn, err := connect()
 	if err != nil {
 		util.LogError("%s ERROR:create connection error:%s", tstfun, err)
@@ -172,24 +173,28 @@ func tstErr(tstfun string, sb []byte, checkFun func(*pushproto.Talk) ) {
 		return
 	}
 
-	data, err := ReadOnce(conn)
-	if err != nil {
-		util.LogError("%s ERROR:read connection error:%s", tstfun, err)
-		return
+
+	for i := 0; i < readtimes; i++ {
+		data, err := ReadOnce(conn)
+		if err != nil {
+			util.LogError("%s ERROR:read connection error:%s", tstfun, err)
+			return
+		}
+
+
+
+		pb := &pushproto.Talk{}
+		err = proto.Unmarshal(data, pb)
+		if err != nil {
+			util.LogError("%s ERROR:unmarshaling connection error:%s", tstfun, err)
+			return
+		}
+
+		util.LogInfo("%s PROTO:%s", tstfun, pb)
+
+		checkFun(pb)
+
 	}
-
-
-
-	pb := &pushproto.Talk{}
-	err = proto.Unmarshal(data, pb)
-	if err != nil {
-		util.LogError("%s ERROR:unmarshaling connection error:%s", tstfun, err)
-		return
-	}
-
-	util.LogInfo("%s PROTO:%s", tstfun, pb)
-
-	checkFun(pb)
 
 
 
@@ -197,15 +202,20 @@ func tstErr(tstfun string, sb []byte, checkFun func(*pushproto.Talk) ) {
 
 
 // ----测试用例----
-// 1. pad错误
+// pad错误
 func tstErrpad() {
+	tstfun := "tstErrpad"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+
 	sb := util.PackdataPad([]byte("error pad"), 1)
 
-	tstfun := "tstErrpad"
-	tstErr(tstfun, sb, func (pb *pushproto.Talk) {
+
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if pb_type == pushproto.Talk_ERR {
-			util.LogInfo("%s OK: msg:%s", tstfun, pb.GetExtdata())
+			util.LogInfo(">>>>>>%s PASS: msg:%s", tstfun, pb.GetExtdata())
+		} else {
+			util.LogError("%s ERROR", tstfun)
 		}
 	})
 
@@ -214,47 +224,211 @@ func tstErrpad() {
 
 
 
-// 2. 空数据包
+// 空数据包
 func tstErrEmptyPack() {
-	sb := util.Packdata([]byte(""))
 	tstfun := "tstErrEmptyPack"
-	tstErr(tstfun, sb, func (pb *pushproto.Talk) {
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	sb := util.Packdata([]byte(""))
+
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if pb_type == pushproto.Talk_ERR {
-			util.LogInfo("%s OK: msg:%s", tstfun, pb.GetExtdata())
+			util.LogInfo(">>>>>>%s PASS: msg:%s", tstfun, pb.GetExtdata())
+		} else {
+			util.LogError("%s ERROR", tstfun)
 		}
+
 	})
 
 
 }
 
 
-// 3. 长度为1数据包
+// 长度为1数据包
 func tstErrOneSizePack() {
-	sb := util.Packdata([]byte("1"))
 	tstfun := "tstErrOneSizePack"
-	tstErr(tstfun, sb, func (pb *pushproto.Talk) {
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	sb := util.Packdata([]byte("1"))
+
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if pb_type == pushproto.Talk_ERR {
-			util.LogInfo("%s OK: msg:%s", tstfun, pb.GetExtdata())
+			util.LogInfo(">>>>>>%s PASS: msg:%s", tstfun, pb.GetExtdata())
+		} else {
+			util.LogError("%s ERROR", tstfun)
 		}
+
 	})
 
 
 }
 
 
-// 4. 超长数据包
 
-// 5. 拆包测试，拆开了发
-// 6. 粘包测试，合并了发送
 
+
+// 超长数据包
+
+// 拆包测试，拆开了发
+// 粘包测试，合并了发送
+
+
+
+// 连接建立，clientid获取
+func tstSyn() {
+	tstfun := "tstSyn"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	msgid := int64(17)
+	syn := &pushproto.Talk{
+		Type: pushproto.Talk_SYN.Enum(),
+		Msgid: proto.Int64(msgid),
+		Appid: proto.String("edaijia_driver"),
+		Installid: proto.String("1cf52f542ec2f6d1e96879bd6f5243da3baa42e4"),
+		Auth: proto.String("Fuck"),
+		Clienttype: proto.String("Android"),
+		Clientver: proto.String("1.0.0"),
+
+	}
+
+
+	data, err := proto.Marshal(syn)
+	if err != nil {
+		util.LogError("%s ERROR:syn proto marshal error:%s", tstfun, err)
+		return
+	}
+
+	sb := util.Packdata(data)
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
+			util.LogInfo(">>>>>>%s PASS: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+		} else {
+			util.LogError("%s ERROR", tstfun)
+		}
+
+	})
+
+
+}
+
+// 多个连接使用同样的clientid，老的被剔除
+func tstDupClient() {
+	tstfun := "tstDupClient"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	msgid := int64(17)
+
+	syn := &pushproto.Talk{
+		Type: pushproto.Talk_SYN.Enum(),
+		Msgid: proto.Int64(msgid),
+		Appid: proto.String("edaijia_driver"),
+		Installid: proto.String("1cf52f542ec2f6d1e96879bd6f5243da3baa42e4"),
+		Auth: proto.String("Fuck"),
+		Clienttype: proto.String("Android"),
+		Clientver: proto.String("1.0.0"),
+
+	}
+
+
+	data, err := proto.Marshal(syn)
+	if err != nil {
+		util.LogError("%s ERROR:syn proto marshal error:%s", tstfun, err)
+		return
+	}
+
+	sb := util.Packdata(data)
+
+	first_conn_read := 0
+	go tstErr(tstfun, sb, 2, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if first_conn_read == 0 {
+			if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
+				util.LogInfo("%s First Conn: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+			} else {
+				util.LogError("%s Second Conn ERROR", tstfun)
+				return
+			}
+			first_conn_read += 1
+		} else {
+			if pb_type == pushproto.Talk_ERR {
+				util.LogInfo(">>>>>>%s First Conn PASS: msg:%s", tstfun, pb.GetExtdata())
+			} else {
+				util.LogError("%s Second Conn ERROR", tstfun)
+				return
+			}
+
+
+		}
+
+	})
+
+	time.Sleep(1000 * 1000 * 1000 * 5)
+
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
+			util.LogInfo(">>>>>>%s Second Conn PASS: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+		} else {
+			util.LogError("%s Second Conn ERROR", tstfun)
+		}
+
+	})
+
+
+}
+
+
+// Echo 测试
+func tstEcho() {
+	tstfun := "tstEcho"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	syn := &pushproto.Talk{
+		Type: pushproto.Talk_ECHO.Enum(),
+		Extdata: []byte("JUST ECHO"),
+
+	}
+
+
+	data, err := proto.Marshal(syn)
+	if err != nil {
+		util.LogError("%s ERROR:proto marshal error:%s", tstfun, err)
+		return
+	}
+
+	sb := util.Packdata(data)
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if pb_type == pushproto.Talk_ECHO {
+			util.LogInfo(">>>>>>%s PASS: %s", tstfun, string(pb.GetExtdata()))
+		} else {
+			util.LogError("%s ERROR", tstfun)
+		}
+
+	})
+
+
+}
+
+
+
+
+
+// 重复发送SYN
+// 乱包测试，发的合法包
+// 业务数据包发送
+
+// 不合法的proto包
+
+// 多连接建立推送
 
 func main() {
 
 	tstErrpad()
 	tstErrEmptyPack()
 	tstErrOneSizePack()
+
+	tstEcho()
+	tstSyn()
+	tstDupClient()
 	//  tst pad err
 	//conn := connect()
 	//pakSyn(conn)

@@ -35,6 +35,9 @@ type ClientDelReq struct {
 
 type TransSend struct {
 	client_id   string
+	msgid int64
+	ziptype int32
+	datatype int32
 	data      []byte
 }
 
@@ -62,6 +65,12 @@ func (self *ConnectionManager) DelClient(client_id string) {
 	self.delreq <- ClientDelReq{client_id}
 }
 
+func (self *ConnectionManager) Send(client_id string, msgid int64, ziptype int32, datatype int32, data []byte) {
+	self.sendbuf <- TransSend{client_id, msgid, ziptype, datatype, data}
+}
+
+
+
 // goroutine
 func (self *ConnectionManager) req() {
 
@@ -70,8 +79,15 @@ func (self *ConnectionManager) req() {
 		select {
 		case r := <-self.addreq:
 			client_id := r.cli.client_id
+			if v, ok := self.clients[client_id]; ok {
+				v.errmsg = "dup client add client"
+				v.CloseErr()
+				util.LogWarn("dup client add client_id %s", client_id)
+
+			}
 			self.clients[client_id] = r.cli
 			log.Println("Add", client_id, len(self.clients))
+
 
 		case r := <-self.delreq:
 			client_id := r.client_id
@@ -81,7 +97,12 @@ func (self *ConnectionManager) req() {
 
 
 		case r := <-self.sendbuf:
-			log.Println("ConnectionManager.Trans Send", r.client_id, r.data)
+			if v, ok := self.clients[r.client_id]; ok {
+				v.SendBussiness(r.msgid, r.ziptype, r.datatype, r.data)
+
+			} else {
+				util.LogWarn("send client_id %s not fond", r.client_id)
+			}
 
 
 		}

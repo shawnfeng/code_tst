@@ -77,8 +77,8 @@ func (x *Talk_ProType) UnmarshalJSON(data []byte) error {
 type Talk struct {
 	Type     *Talk_ProType `protobuf:"varint,1,req,enum=pushproto.Talk_ProType" json:"Type,omitempty"`
 	Clientid *string       `protobuf:"bytes,2,opt" json:"Clientid,omitempty"`
-	Msgid    *int32        `protobuf:"varint,3,opt" json:"Msgid,omitempty"`
-	Ackmsgid *int32        `protobuf:"varint,4,opt" json:"Ackmsgid,omitempty"`
+	Msgid    *int64        `protobuf:"varint,3,opt" json:"Msgid,omitempty"`
+	Ackmsgid *int64        `protobuf:"varint,4,opt" json:"Ackmsgid,omitempty"`
 	// syn ext
 	Auth       *string `protobuf:"bytes,1001,opt" json:"Auth,omitempty"`
 	Appid      *string `protobuf:"bytes,1002,opt" json:"Appid,omitempty"`
@@ -111,14 +111,14 @@ func (m *Talk) GetClientid() string {
 	return ""
 }
 
-func (m *Talk) GetMsgid() int32 {
+func (m *Talk) GetMsgid() int64 {
 	if m != nil && m.Msgid != nil {
 		return *m.Msgid
 	}
 	return 0
 }
 
-func (m *Talk) GetAckmsgid() int32 {
+func (m *Talk) GetAckmsgid() int64 {
 	if m != nil && m.Ackmsgid != nil {
 		return *m.Ackmsgid
 	}

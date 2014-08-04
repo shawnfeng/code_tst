@@ -34,17 +34,38 @@ func (self *Client) sendERR(errmsg string) {
 
 
 
-func (self *Client) sendSYNACK(client_id string, msgid int32) {
+func (self *Client) sendSYNACK(client_id string, msgid int64) {
 	synack := &pushproto.Talk{
 		Type: pushproto.Talk_SYNACK.Enum(),
 		Clientid: proto.String(client_id),
-		Msgid: proto.Int32(msgid),
+		Ackmsgid: proto.Int64(msgid),
 	}
 
 	data, _ := proto.Marshal(synack)
 	self.Send(util.Packdata(data))
 
 }
+
+
+func (self *Client) SendBussiness(msgid int64, ziptype int32, datatype int32, data []byte) {
+	buss := &pushproto.Talk {
+		Type: pushproto.Talk_BUSSINESS.Enum(),
+		Msgid: proto.Int64(msgid),
+		Ziptype: proto.Int32(ziptype),
+		Datatype: proto.Int32(datatype),
+		Bussdata: data,
+	}
+
+	data, err := proto.Marshal(buss)
+	if err != nil {
+		util.LogError("Bussiness marshaling error: ", err)
+		return
+	}
+
+	self.Send(util.Packdata(data))
+
+}
+
 
 
 func (self *Client) recvSYN(pb *pushproto.Talk) {
@@ -97,6 +118,9 @@ func (self *Client) proto(data []byte) {
 
 	if pb_type == pushproto.Talk_SYN {
 		self.recvSYN(pb)
+	} else if pb_type == pushproto.Talk_ECHO {
+		self.Send(util.Packdata(data))
+
 	}
 
 }

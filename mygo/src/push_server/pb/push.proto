@@ -16,10 +16,11 @@ message Talk {
 
 	}
 
+
 	required ProType Type = 1;
 	optional string Clientid = 2;
-	optional int32 Msgid =  3;
-	optional int32 Ackmsgid =  4;
+	optional int64 Msgid =  3;
+	optional int64 Ackmsgid =  4;
 
 	// syn ext
 	optional string Auth =  1001;
@@ -30,8 +31,9 @@ message Talk {
 
 
 	// bussiness ext
-	optional int32 Ziptype =  1500;
-	optional int32 Datatype =  1501;
+	// 这里的类型没有采用enum，是为了方便跨服务的数据传输
+	optional int32 Ziptype =  1500;  // 0 没有压缩， 1 gzip， 2 7z
+	optional int32 Datatype =  1501; // 1 protobuf 2 json 3 xml
 	optional bytes Bussdata =  1502;
 
 	optional bytes Extdata =  2000;
