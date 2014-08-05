@@ -34,11 +34,10 @@ func (self *Client) sendERR(errmsg string) {
 
 
 
-func (self *Client) sendSYNACK(client_id string, msgid int64) {
+func (self *Client) sendSYNACK(client_id string) {
 	synack := &pushproto.Talk{
 		Type: pushproto.Talk_SYNACK.Enum(),
 		Clientid: proto.String(client_id),
-		Ackmsgid: proto.Int64(msgid),
 	}
 
 	data, _ := proto.Marshal(synack)
@@ -69,17 +68,13 @@ func (self *Client) SendBussiness(msgid int64, ziptype int32, datatype int32, da
 
 
 func (self *Client) recvSYN(pb *pushproto.Talk) {
-	msgid := pb.GetMsgid()
-	if msgid == 0 {
-		self.Close()
-	}
 
 	if self.state == State_ESTABLISHED  {
 		// 已经建立了连接，当前状态是ESTABLISHED，可能是客户端没有收到synack
 		// 重新回执synack
 		util.LogWarn("conn: %s state: ESTABLISHED can not change SYN_RCVD", self.client_id)
 
-		self.sendSYNACK(self.client_id, msgid)
+		self.sendSYNACK(self.client_id)
 
 
 	} else {
@@ -94,7 +89,7 @@ func (self *Client) recvSYN(pb *pushproto.Talk) {
 		self.changeState(State_ESTABLISHED)
 		self.manager.addClient(self)
 
-		self.sendSYNACK(cli_id, msgid)
+		self.sendSYNACK(cli_id)
 
 	}
 

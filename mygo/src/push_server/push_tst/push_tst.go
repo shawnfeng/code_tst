@@ -11,7 +11,7 @@ import (
 
 // ext lib
 import (
-	"code.google.com/p/go-uuid/uuid"
+//	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/goprotobuf/proto"
 )
 
@@ -37,35 +37,6 @@ func Read(conn net.Conn) {
 	}
 
 }
-
-func pakSyn(conn net.Conn) {
-
-	uuidgen := uuid.NewUUID()
-	installid := uuidgen.String()
-
-	syn := &pushproto.Talk{
-		Type: pushproto.Talk_SYN.Enum(),
-		Msgid: proto.Int64(17),
-		Appid: proto.String("376083b4ee34c038f9cd90c5cff364e8"),
-		Installid: proto.String(installid),
-		Auth: proto.String("Fuck"),
-		Clienttype: proto.String("Android"),
-		Clientver: proto.String("1.0.0"),
-
-	}
-
-
-	data, err := proto.Marshal(syn)
-	log.Println(data, err)
-	if err != nil {
-		log.Println("marshaling error: ", err)
-	}
-
-
-	packdata(conn, data)
-
-}
-
 
 func packdata(conn net.Conn, data []byte) {
 	sendbuff := make([]byte, 0)
@@ -278,11 +249,9 @@ func tstErrOneSizePack() {
 func tstSyn() {
 	tstfun := "tstSyn"
 	util.LogInfo("<<<<<<%s TEST", tstfun)
-	msgid := int64(17)
 	syn := &pushproto.Talk{
 		Type: pushproto.Talk_SYN.Enum(),
-		Msgid: proto.Int64(msgid),
-		Appid: proto.String("edaijia_driver"),
+		Appid: proto.String("shawn"),
 		Installid: proto.String("1cf52f542ec2f6d1e96879bd6f5243da3baa42e4"),
 		Auth: proto.String("Fuck"),
 		Clienttype: proto.String("Android"),
@@ -300,8 +269,8 @@ func tstSyn() {
 	sb := util.Packdata(data)
 	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
-		if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
-			util.LogInfo(">>>>>>%s PASS: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+		if pb_type == pushproto.Talk_SYNACK {
+			util.LogInfo(">>>>>>%s PASS: client_id:%s", tstfun, pb.GetClientid())
 		} else {
 			util.LogError("%s ERROR", tstfun)
 		}
@@ -315,12 +284,10 @@ func tstSyn() {
 func tstDupClient() {
 	tstfun := "tstDupClient"
 	util.LogInfo("<<<<<<%s TEST", tstfun)
-	msgid := int64(17)
 
 	syn := &pushproto.Talk{
 		Type: pushproto.Talk_SYN.Enum(),
-		Msgid: proto.Int64(msgid),
-		Appid: proto.String("edaijia_driver"),
+		Appid: proto.String("shawn"),
 		Installid: proto.String("1cf52f542ec2f6d1e96879bd6f5243da3baa42e4"),
 		Auth: proto.String("Fuck"),
 		Clienttype: proto.String("Android"),
@@ -341,8 +308,8 @@ func tstDupClient() {
 	go tstErr(tstfun, sb, 2, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if first_conn_read == 0 {
-			if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
-				util.LogInfo("%s First Conn: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+			if pb_type == pushproto.Talk_SYNACK {
+				util.LogInfo("%s First Conn: client_id:%s", tstfun, pb.GetClientid())
 			} else {
 				util.LogError("%s Second Conn ERROR", tstfun)
 				return
@@ -365,8 +332,8 @@ func tstDupClient() {
 
 	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
-		if pb_type == pushproto.Talk_SYNACK && pb.GetAckmsgid() == msgid {
-			util.LogInfo(">>>>>>%s Second Conn PASS: client_id:%s ackmsgid:%d", tstfun, pb.GetClientid(), pb.GetAckmsgid())
+		if pb_type == pushproto.Talk_SYNACK {
+			util.LogInfo(">>>>>>%s Second Conn PASS: client_id:%s", tstfun, pb.GetClientid())
 		} else {
 			util.LogError("%s Second Conn ERROR", tstfun)
 		}
