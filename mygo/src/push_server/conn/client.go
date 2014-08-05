@@ -46,6 +46,11 @@ type Client struct {
 	manager     *ConnectionManager
 }
 
+func (self *Client) String() string {
+	return "id:" + self.client_id + " addr:" + self.remoteaddr
+}
+
+
 func NewClient(m *ConnectionManager, c net.Conn) *Client {
 	// 分配一个临时的编号，方便问题查询定位
 	uuidgen := uuid.NewUUID()
@@ -76,7 +81,7 @@ func (self *Client) Close() {
 	util.LogInfo("close client %s state:%s id:%s", self.remoteaddr, self.state, self.client_id)
 
 	if self.state == State_ESTABLISHED {
-		self.manager.DelClient(self.client_id)
+		self.manager.DelClient(self.client_id, self.remoteaddr)
 	}
 
 	if self.state != State_CLOSE {
@@ -179,7 +184,7 @@ func (self *Client) Recv() {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
 		bytesRead, error := conn.Read(buffer)
 		if error != nil {
-			log.Println("Client connection error: ", self.client_id, error)
+			log.Println("Client connection error: ", self, error)
 			return
 		}
 

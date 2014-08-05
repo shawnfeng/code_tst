@@ -57,10 +57,11 @@ func (self *Client) sendHEART() {
 
 
 
-func (self *Client) SendBussiness(msgid int64, ziptype int32, datatype int32, data []byte) {
+func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 	buss := &pushproto.Talk {
 		Type: pushproto.Talk_BUSSINESS.Enum(),
-		Msgid: proto.Int64(msgid),
+		//Msgid: proto.Int64(msgid),
+		Msgid: proto.Int64(int64(222)),
 		Ziptype: proto.Int32(ziptype),
 		Datatype: proto.Int32(datatype),
 		Bussdata: data,

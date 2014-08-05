@@ -31,11 +31,11 @@ type ClientAddReq struct {
 
 type ClientDelReq struct {
 	client_id string
+	addr string
 }
 
 type TransSend struct {
 	client_id   string
-	msgid int64
 	ziptype int32
 	datatype int32
 	data      []byte
@@ -61,12 +61,12 @@ func (self *ConnectionManager) addClient(cli *Client) {
 	self.addreq <- ClientAddReq{cli}
 }
 
-func (self *ConnectionManager) DelClient(client_id string) {
-	self.delreq <- ClientDelReq{client_id}
+func (self *ConnectionManager) DelClient(client_id string, addr string) {
+	self.delreq <- ClientDelReq{client_id, addr}
 }
 
-func (self *ConnectionManager) Send(client_id string, msgid int64, ziptype int32, datatype int32, data []byte) {
-	self.sendbuf <- TransSend{client_id, msgid, ziptype, datatype, data}
+func (self *ConnectionManager) Send(client_id string, ziptype int32, datatype int32, data []byte) {
+	self.sendbuf <- TransSend{client_id, ziptype, datatype, data}
 }
 
 
@@ -86,19 +86,32 @@ func (self *ConnectionManager) req() {
 
 			}
 			self.clients[client_id] = r.cli
-			log.Println("Add", client_id, len(self.clients))
+			util.LogInfo("Add %s %d %s", client_id, len(self.clients), r.cli.remoteaddr)
 
 
 		case r := <-self.delreq:
 			client_id := r.client_id
 			// The delete function doesn't return anything, and will do nothing if the specified key doesn't exist.
-			delete(self.clients, client_id)
-			log.Println("Remove", r.client_id, len(self.clients))
+
+			if v, ok := self.clients[r.client_id]; ok {
+				if v.remoteaddr == r.addr {
+					delete(self.clients, client_id)
+					util.LogInfo("Remove %s %d %s", r.client_id, len(self.clients), v.remoteaddr)
+				} else {
+					util.LogWarn("delete client %s not same %s", v, r.addr)
+				}
+
+			} else {
+				util.LogWarn("delete client_id %s not fond", r.client_id)
+			}
+
+
 
 
 		case r := <-self.sendbuf:
+			log.Println(self.clients)
 			if v, ok := self.clients[r.client_id]; ok {
-				v.SendBussiness(r.msgid, r.ziptype, r.datatype, r.data)
+				v.SendBussiness(r.ziptype, r.datatype, r.data)
 
 			} else {
 				util.LogWarn("send client_id %s not fond", r.client_id)

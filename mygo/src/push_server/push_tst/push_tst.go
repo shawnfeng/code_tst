@@ -6,7 +6,10 @@ import (
 	"net"
 	"time"
 	"errors"
+	"strings"
 	"encoding/binary"
+    "net/http"
+	"io/ioutil"
 )
 
 // ext lib
@@ -87,7 +90,7 @@ func packtst(conn net.Conn, len int, pad byte) {
 
 
 func connect() (net.Conn, error) {
-	return net.Dial("tcp", "127.0.0.1:9988")
+	return net.Dial("tcp", "127.0.0.1:9989")
 
 }
 
@@ -238,13 +241,6 @@ func tstErrOneSizePack() {
 
 
 
-// 超长数据包
-
-// 拆包测试，拆开了发
-// 粘包测试，合并了发送
-
-
-
 // 连接建立，clientid获取
 func tstSyn() {
 	tstfun := "tstSyn"
@@ -305,13 +301,13 @@ func tstDupClient() {
 	sb := util.Packdata(data)
 
 	first_conn_read := 0
-	go tstErr(tstfun, sb, 2, func (pb *pushproto.Talk) {
+	go tstErr(tstfun, sb, 10, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if first_conn_read == 0 {
 			if pb_type == pushproto.Talk_SYNACK {
 				util.LogInfo("%s First Conn: client_id:%s", tstfun, pb.GetClientid())
 			} else {
-				util.LogError("%s Second Conn ERROR", tstfun)
+				util.LogError("%s First Conn ERROR", tstfun)
 				return
 			}
 			first_conn_read += 1
@@ -319,7 +315,7 @@ func tstDupClient() {
 			if pb_type == pushproto.Talk_ERR {
 				util.LogInfo(">>>>>>%s First Conn PASS: msg:%s", tstfun, pb.GetExtdata())
 			} else {
-				util.LogError("%s Second Conn ERROR", tstfun)
+				util.LogError("%s First Conn ERROR", tstfun)
 				return
 			}
 
@@ -407,13 +403,102 @@ func tstHeart() {
 }
 
 
+// 业务数据包发送
+func tstBussinessSend() {
+	tstfun := "tstBussinessSend"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+
+	syn := &pushproto.Talk{
+		Type: pushproto.Talk_SYN.Enum(),
+		Appid: proto.String("shawn"),
+		Installid: proto.String("1cf52f542ec2f6d1e96879bd6f5243da3baa42e4"),
+		Auth: proto.String("Fuck"),
+		Clienttype: proto.String("Android"),
+		Clientver: proto.String("1.0.0"),
+
+	}
+
+
+	data, err := proto.Marshal(syn)
+	if err != nil {
+		util.LogError("%s ERROR:syn proto marshal error:%s", tstfun, err)
+		return
+	}
+
+	sb := util.Packdata(data)
+
+	first_conn_read := 0
+	clientid := ""
+	go tstErr(tstfun, sb, 3, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if first_conn_read == 0 {
+			if pb_type == pushproto.Talk_SYNACK {
+				clientid = pb.GetClientid()
+				util.LogInfo("%s Conn: client_id:%s", tstfun, pb.GetClientid())
+			} else {
+				util.LogError("%s Conn ERROR", tstfun)
+				return
+			}
+			first_conn_read += 1
+		} else {
+			if pb_type == pushproto.Talk_BUSSINESS {
+				util.LogInfo(">>>>>>%s Recv PASS", tstfun)
+			} else {
+				util.LogError("%s Recv ERROR", tstfun)
+				return
+			}
+
+
+		}
+
+	})
+	// waiting for connection
+	util.LogInfo("%s waiting for connection", tstfun)
+	time.Sleep(1000 * 1000 * 1000 * 1)
+
+
+	client := &http.Client{}
+	url := fmt.Sprintf("http://localhost:9091/push/%s/0/2", clientid)
+    reqest, _ := http.NewRequest("POST", url, strings.NewReader("ff"))
+
+    reqest.Header.Set("Connection","Keep-Alive")
+
+    response,_ := client.Do(reqest)
+    if response.StatusCode == 200 {
+        body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			util.LogError("%s Push return ERROR %s", tstfun, err)
+			return
+		}
+
+		util.LogInfo("%s Push return %s", tstfun, body)
+
+    } else {
+		util.LogError("%s Push ERROR", tstfun)
+		return
+	}
+
+	time.Sleep(1000 * 1000 * 1000 * 5)
+
+
+}
+
+
+
+
+
+
+// 超长数据包
+
+// 拆包测试，拆开了发
+// 粘包测试，合并了发送
 
 
 
 
 // 重复发送SYN
 // 乱包测试，发的合法包
-// 业务数据包发送
+
 
 // 不合法的proto包
 
@@ -429,6 +514,8 @@ func main() {
 	tstHeart()
 	tstSyn()
 	tstDupClient()
+	//time.Sleep(1000 * 1000 * 1000 * 1)
+	tstBussinessSend()
 	//  tst pad err
 	//conn := connect()
 	//pakSyn(conn)
