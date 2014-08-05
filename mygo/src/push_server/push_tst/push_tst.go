@@ -376,6 +376,38 @@ func tstEcho() {
 }
 
 
+// Heart 测试
+func tstHeart() {
+	tstfun := "tstHeart"
+	util.LogInfo("<<<<<<%s TEST", tstfun)
+	syn := &pushproto.Talk {
+		Type: pushproto.Talk_HEART.Enum(),
+
+	}
+
+
+	data, err := proto.Marshal(syn)
+	if err != nil {
+		util.LogError("%s ERROR:proto marshal error:%s", tstfun, err)
+		return
+	}
+
+	sb := util.Packdata(data)
+	tstErr(tstfun, sb, 1, func (pb *pushproto.Talk) {
+		pb_type := pb.GetType()
+		if pb_type == pushproto.Talk_HEART {
+			util.LogInfo(">>>>>>%s PASS", tstfun)
+		} else {
+			util.LogError("%s ERROR", tstfun)
+		}
+
+	})
+
+
+}
+
+
+
 
 
 
@@ -394,6 +426,7 @@ func main() {
 	tstErrOneSizePack()
 
 	tstEcho()
+	tstHeart()
 	tstSyn()
 	tstDupClient()
 	//  tst pad err

@@ -45,6 +45,17 @@ func (self *Client) sendSYNACK(client_id string) {
 
 }
 
+func (self *Client) sendHEART() {
+	synack := &pushproto.Talk{
+		Type: pushproto.Talk_HEART.Enum(),
+	}
+
+	data, _ := proto.Marshal(synack)
+	self.Send(util.Packdata(data))
+
+}
+
+
 
 func (self *Client) SendBussiness(msgid int64, ziptype int32, datatype int32, data []byte) {
 	buss := &pushproto.Talk {
@@ -116,7 +127,11 @@ func (self *Client) proto(data []byte) {
 	} else if pb_type == pushproto.Talk_ECHO {
 		self.Send(util.Packdata(data))
 
+	} else if pb_type == pushproto.Talk_HEART {
+		self.sendHEART()
+
 	}
+
 
 }
 
