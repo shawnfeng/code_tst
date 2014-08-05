@@ -1,4 +1,4 @@
-package tcpconn
+package connection
 
 // TODO LIST:
 // select add timeout, expecial Client.Send

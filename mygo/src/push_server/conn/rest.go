@@ -1,4 +1,4 @@
-package tcpconn
+package connection
 
 import (
     "fmt"

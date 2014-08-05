@@ -10,10 +10,8 @@ import (
 
 
 func main() {
-	tcpconn.StartHttp()
-
-
-	conn_man := tcpconn.NewConnectionManager()
+	connection.StartHttp()
+	conn_man := connection.NewConnectionManager()
 
 	service := ":9988"
 	conn_man.Loop(service)
