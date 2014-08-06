@@ -133,12 +133,12 @@ func push(w http.ResponseWriter, r *http.Request) {
 
 var connman *ConnectionManager
 
-func StartHttp(cm *ConnectionManager) {
+func StartHttp(cm *ConnectionManager, httpport string) {
 	connman = cm
 	go func() {
 		http.HandleFunc("/push/", push)
 
-		err := http.ListenAndServe(":9091", nil) //设置监听的端口
+		err := http.ListenAndServe(httpport, nil) //设置监听的端口
 		if err != nil {
 			log.Fatal("ListenAndServe: ", err)
 		}

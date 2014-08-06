@@ -11,7 +11,9 @@ import (
 
 func main() {
 	conn_man := connection.NewConnectionManager()
-	connection.StartHttp(conn_man)
+
+	httpport := ":9091"
+	connection.StartHttp(conn_man, httpport)
 
 	service := ":9989"
 	conn_man.Loop(service)

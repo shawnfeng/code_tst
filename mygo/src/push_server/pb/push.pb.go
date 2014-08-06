@@ -77,8 +77,8 @@ func (x *Talk_ProType) UnmarshalJSON(data []byte) error {
 type Talk struct {
 	Type     *Talk_ProType `protobuf:"varint,1,req,enum=pushproto.Talk_ProType" json:"Type,omitempty"`
 	Clientid *string       `protobuf:"bytes,2,opt" json:"Clientid,omitempty"`
-	Msgid    *int64        `protobuf:"varint,3,opt" json:"Msgid,omitempty"`
-	Ackmsgid *int64        `protobuf:"varint,4,opt" json:"Ackmsgid,omitempty"`
+	Msgid    *uint64       `protobuf:"fixed64,3,opt" json:"Msgid,omitempty"`
+	Ackmsgid *uint64       `protobuf:"fixed64,4,opt" json:"Ackmsgid,omitempty"`
 	// syn ext
 	Auth       *string `protobuf:"bytes,1001,opt" json:"Auth,omitempty"`
 	Appid      *string `protobuf:"bytes,1002,opt" json:"Appid,omitempty"`
@@ -86,6 +86,7 @@ type Talk struct {
 	Clienttype *string `protobuf:"bytes,1004,opt" json:"Clienttype,omitempty"`
 	Clientver  *string `protobuf:"bytes,1005,opt" json:"Clientver,omitempty"`
 	// bussiness ext
+	// 这里的类型没有采用enum，是为了方便跨服务的数据传输
 	Ziptype          *int32 `protobuf:"varint,1500,opt" json:"Ziptype,omitempty"`
 	Datatype         *int32 `protobuf:"varint,1501,opt" json:"Datatype,omitempty"`
 	Bussdata         []byte `protobuf:"bytes,1502,opt" json:"Bussdata,omitempty"`
@@ -111,14 +112,14 @@ func (m *Talk) GetClientid() string {
 	return ""
 }
 
-func (m *Talk) GetMsgid() int64 {
+func (m *Talk) GetMsgid() uint64 {
 	if m != nil && m.Msgid != nil {
 		return *m.Msgid
 	}
 	return 0
 }
 
-func (m *Talk) GetAckmsgid() int64 {
+func (m *Talk) GetAckmsgid() uint64 {
 	if m != nil && m.Ackmsgid != nil {
 		return *m.Ackmsgid
 	}

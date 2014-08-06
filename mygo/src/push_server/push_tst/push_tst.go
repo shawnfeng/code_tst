@@ -6,7 +6,8 @@ import (
 	"net"
 	"time"
 	"errors"
-	"strings"
+	//"strings"
+	"bytes"
 	"encoding/binary"
     "net/http"
 	"io/ioutil"
@@ -457,9 +458,23 @@ func tstBussinessSend() {
 	time.Sleep(1000 * 1000 * 1000 * 1)
 
 
+	btst := &pushproto.Talk{
+		Type: pushproto.Talk_ECHO.Enum(),
+		Extdata: []byte("BUSSESS TEST"),
+
+	}
+	bd, err := proto.Marshal(btst)
+	if err != nil {
+		util.LogError("%s ERROR:proto marshal error:%s", tstfun, err)
+		return
+	}
+
+
 	client := &http.Client{}
-	url := fmt.Sprintf("http://localhost:9091/push/%s/0/2", clientid)
-    reqest, _ := http.NewRequest("POST", url, strings.NewReader("ff"))
+	url := fmt.Sprintf("http://localhost:9091/push/%s/0/1", clientid)
+
+
+    reqest, _ := http.NewRequest("POST", url, bytes.NewReader(bd))
 
     reqest.Header.Set("Connection","Keep-Alive")
 

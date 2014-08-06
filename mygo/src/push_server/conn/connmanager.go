@@ -15,6 +15,7 @@ import (
 import (
 	//"code.google.com/p/go-uuid/uuid"
 //	"code.google.com/p/goprotobuf/proto"
+	"github.com/sdming/gosnow"
 )
 
 // my lib
@@ -54,6 +55,9 @@ type ConnectionManager struct {
 
 	sendbuf chan TransSend
 //	recvbuf chan TransRecv
+
+
+	sf *gosnow.SnowFlake
 }
 
 
@@ -153,6 +157,12 @@ func (self *ConnectionManager) trans() {
 }
 
 
+func (self *ConnectionManager) Msgid() (uint64, error) {
+	return self.sf.Next()
+
+}
+
+
 func (self *ConnectionManager) Loop(addr string) {
 	tcpAddr, error := net.ResolveTCPAddr("tcp", addr)
 	if error != nil {
@@ -186,6 +196,12 @@ func (self *ConnectionManager) Loop(addr string) {
 
 
 func NewConnectionManager() *ConnectionManager {
+	v, err := gosnow.Default()
+	//v, err := gosnow.NewSnowFlake(100)
+	if err != nil {
+		panic("snowflake init error, msgid can not get!")
+	}
+
 	return &ConnectionManager {
 		sendbuf: make(chan TransSend, 9),
 //		recvbuf: make(chan TransRecv, 9),
@@ -193,6 +209,8 @@ func NewConnectionManager() *ConnectionManager {
 		addreq: make(chan ClientAddReq, 0),
 		delreq: make(chan ClientDelReq, 0),
 		clients: make(map[string]*Client),
+
+		sf: v,
 
 	}
 

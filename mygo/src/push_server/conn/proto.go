@@ -58,22 +58,28 @@ func (self *Client) sendHEART() {
 
 
 func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
+	msgid, err := self.manager.Msgid()
+	if err != nil {
+		util.LogError("SendBussiness get msgid error:%s", err)
+		return
+	}
+
+
 	buss := &pushproto.Talk {
 		Type: pushproto.Talk_BUSSINESS.Enum(),
-		//Msgid: proto.Int64(msgid),
-		Msgid: proto.Int64(int64(222)),
+		Msgid: proto.Uint64(msgid),
 		Ziptype: proto.Int32(ziptype),
 		Datatype: proto.Int32(datatype),
 		Bussdata: data,
 	}
 
-	data, err := proto.Marshal(buss)
+	spb, err := proto.Marshal(buss)
 	if err != nil {
 		util.LogError("Bussiness marshaling error: ", err)
 		return
 	}
 
-	self.Send(util.Packdata(data))
+	self.Send(util.Packdata(spb))
 
 }
 
