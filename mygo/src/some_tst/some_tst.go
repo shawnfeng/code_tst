@@ -89,8 +89,20 @@ func tst_const() {
 
 }
 
+
+// 测试重复关闭channel，引起崩溃
+func tst_double_close_channel() {
+	c := make(chan bool)
+
+	close(c)
+	close(c)
+
+}
+
+
 func main() {
 	//tst_assert()
 	//tst_struct_init()
-	tst_const()
+	//tst_const()
+	tst_double_close_channel()
 }

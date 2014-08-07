@@ -3,6 +3,7 @@ package connection
 // base lib
 import (
 	"fmt"
+	"time"
 	"log"
 	"crypto/sha1"
 )
@@ -55,7 +56,49 @@ func (self *Client) sendHEART() {
 
 }
 
+func (self *Client) sendBussRetry(msgid uint64, pb []byte) {
+	ack_notify := make(chan bool)
+	self.bussmsg[msgid] = ack_notify
 
+	retry_intv := 2
+	retry_time := 3
+
+	go func() {
+
+		defer delete(self.bussmsg, msgid)
+
+		for i := 1; i <= retry_time+1; i++ {
+
+			select {
+			case <-ack_notify:
+				util.LogInfo("client:%s recv ack msgid:%d", self, msgid)
+				return
+
+			case <-time.After(time.Second * time.Duration(retry_intv)):
+				if i <= retry_time {
+					util.LogInfo("client:%s retry msgid:%d times:%d", self, msgid, i)
+					self.Send(pb)
+				} else {
+					// 最后一次发送已经超时
+					util.LogInfo("client:%s send timeout msgid:%d", self, msgid)
+					// 断开连接
+					self.Close()
+
+				}
+
+
+			}
+
+			retry_intv = retry_intv << 1
+
+		}
+
+
+
+
+	}()
+
+}
 
 func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 	msgid, err := self.manager.Msgid()
@@ -79,10 +122,20 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 		return
 	}
 
-	self.Send(util.Packdata(spb))
+	p := util.Packdata(spb)
+	self.sendBussRetry(msgid, p)
+
+	self.Send(p)
 
 }
 
+
+func (self *Client) recvACK(pb *pushproto.Talk) {
+	msgid := pb.GetAckmsgid()
+	if v, ok := self.bussmsg[msgid]; ok {
+		close(v)
+	}
+}
 
 
 func (self *Client) recvSYN(pb *pushproto.Talk) {
@@ -136,6 +189,10 @@ func (self *Client) proto(data []byte) {
 
 	} else if pb_type == pushproto.Talk_HEART {
 		self.sendHEART()
+
+	} else if pb_type == pushproto.Talk_ACK {
+		self.recvACK(pb)
+
 
 	}
 

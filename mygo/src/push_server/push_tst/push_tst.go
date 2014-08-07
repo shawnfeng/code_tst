@@ -140,6 +140,11 @@ func tstErr(tstfun string, sb []byte, readtimes int, checkFun func(*pushproto.Ta
 
 	defer conn.Close()
 
+	tstErrConn(conn, tstfun, sb, readtimes, checkFun)
+
+}
+func tstErrConn(conn net.Conn, tstfun string, sb []byte, readtimes int, checkFun func(*pushproto.Talk) ) {
+
 	//sb := util.PackdataPad(data, 1)
 
 	ln, err := conn.Write(sb)
@@ -405,7 +410,7 @@ func tstHeart() {
 
 
 // 业务数据包发送
-func tstBussinessSend() {
+func tstBussinessSend(ackDelay int) {
 	tstfun := "tstBussinessSend"
 	util.LogInfo("<<<<<<%s TEST", tstfun)
 
@@ -430,7 +435,17 @@ func tstBussinessSend() {
 
 	first_conn_read := 0
 	clientid := ""
-	go tstErr(tstfun, sb, 3, func (pb *pushproto.Talk) {
+
+	conn, err := connect()
+	if err != nil {
+		util.LogError("%s ERROR:create connection error:%s", tstfun, err)
+		return
+	}
+
+	defer conn.Close()
+
+
+	go tstErrConn(conn, tstfun, sb, 10, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if first_conn_read == 0 {
 			if pb_type == pushproto.Talk_SYNACK {
@@ -442,8 +457,35 @@ func tstBussinessSend() {
 			}
 			first_conn_read += 1
 		} else {
+			first_conn_read += 1
 			if pb_type == pushproto.Talk_BUSSINESS {
 				util.LogInfo(">>>>>>%s Recv PASS", tstfun)
+
+				if ackDelay+1 == first_conn_read {
+					ack := &pushproto.Talk{
+						Type: pushproto.Talk_ACK.Enum(),
+						Ackmsgid: proto.Uint64(pb.GetMsgid()),
+
+					}
+
+					data, err := proto.Marshal(ack)
+					if err != nil {
+						util.LogError("%s ERROR:syn proto marshal error:%s", tstfun, err)
+						return
+					}
+
+					sb2 := util.Packdata(data)
+
+					ln, err := conn.Write(sb2)
+					if ln != len(sb2) || err != nil {
+						util.LogError("%s ERROR:send error:%s", tstfun, err)
+						return
+					}
+
+				}
+
+
+
 			} else {
 				util.LogError("%s Recv ERROR", tstfun)
 				return
@@ -493,7 +535,7 @@ func tstBussinessSend() {
 		return
 	}
 
-	time.Sleep(1000 * 1000 * 1000 * 5)
+	time.Sleep(time.Second * time.Duration(1 * ackDelay))
 
 
 }
@@ -530,7 +572,7 @@ func main() {
 	tstSyn()
 	tstDupClient()
 	//time.Sleep(1000 * 1000 * 1000 * 1)
-	tstBussinessSend()
+	tstBussinessSend(5)
 	//  tst pad err
 	//conn := connect()
 	//pakSyn(conn)

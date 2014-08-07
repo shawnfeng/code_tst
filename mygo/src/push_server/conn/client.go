@@ -12,6 +12,7 @@ import (
 	"time"
 	"encoding/binary"
 	"crypto/sha1"
+	"sync"
 )
 
 // ext lib
@@ -38,8 +39,12 @@ type Client struct {
 	state       string // CLOSE TCP_READY SYN_RCVD ESTABLISHED
 	client_id   string // CLOSE TCP_READY SYN_RCVD is tmp id
 	conn        net.Conn
-	sending     chan bool
+	//sending     chan bool
+	send_lock          sync.Mutex
 	remoteaddr  string
+
+	// 先不考虑锁的问题，单进程执行的
+	bussmsg  map[uint64] chan bool
 
 	errmsg      string
 
@@ -62,8 +67,9 @@ func NewClient(m *ConnectionManager, c net.Conn) *Client {
 		state: State_CLOSE,
 		client_id: tmp_client_id,
 		conn: c,
-		sending: make(chan bool, 1),
+		//sending: make(chan bool, 1),
 		remoteaddr: c.RemoteAddr().String(),
+		bussmsg: make(map[uint64] chan bool),
 		errmsg: "",
 		manager: m,
 	}
@@ -90,6 +96,12 @@ func (self *Client) Close() {
 		}
 		self.changeState(State_CLOSE)
 	}
+
+    for _, v := range self.bussmsg {
+		close(v)
+	}
+
+	self.bussmsg = make(map[uint64] chan bool)
 
 }
 
@@ -128,11 +140,13 @@ func (self *Client) changeState(s string) {
 }
 
 func (self *Client) sendLock() {
-	self.sending <- true
+	//self.sending <- true
+	self.send_lock.Lock()
 }
 
 func (self *Client) sendUnLock() {
-	<-self.sending
+	//<-self.sending
+	self.send_lock.Unlock()
 }
 
 func (self *Client) Send(s []byte) {
@@ -181,7 +195,7 @@ func (self *Client) Recv() {
 	defer self.CloseErr()
 
 	for {
-		conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
+		conn.SetReadDeadline(time.Now().Add(time.Duration(60 * 10) * time.Second))
 		bytesRead, error := conn.Read(buffer)
 		if error != nil {
 			log.Println("Client connection error: ", self, error)
