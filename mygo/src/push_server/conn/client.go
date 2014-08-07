@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	State_CLOSE       string = "CLOSE"
+	State_CLOSED       string = "CLOSED"
 	State_TCP_READY   string = "TCP_READY"
 	State_SYN_RCVD    string = "SYN_RCVD"
 	State_ESTABLISHED string = "ESTABLISHED"
@@ -36,8 +36,8 @@ const (
 
 
 type Client struct {
-	state       string // CLOSE TCP_READY SYN_RCVD ESTABLISHED
-	client_id   string // CLOSE TCP_READY SYN_RCVD is tmp id
+	state       string // CLOSED TCP_READY SYN_RCVD ESTABLISHED
+	client_id   string // CLOSED TCP_READY SYN_RCVD is tmp id
 	conn        net.Conn
 	//sending     chan bool
 	send_lock          sync.Mutex
@@ -64,7 +64,7 @@ func NewClient(m *ConnectionManager, c net.Conn) *Client {
 	tmp_client_id = fmt.Sprintf("tmp/%x", h)
 
 	var cli *Client = &Client {
-		state: State_CLOSE,
+		state: State_CLOSED,
 		client_id: tmp_client_id,
 		conn: c,
 		//sending: make(chan bool, 1),
@@ -90,11 +90,11 @@ func (self *Client) Close() {
 		self.manager.DelClient(self.client_id, self.remoteaddr)
 	}
 
-	if self.state != State_CLOSE {
+	if self.state != State_CLOSED {
 		if err := self.conn.Close(); err != nil {
 			util.LogWarn("Close net.Conn err: %s", err)
 		}
-		self.changeState(State_CLOSE)
+		self.changeState(State_CLOSED)
 	}
 
     for _, v := range self.bussmsg {
@@ -128,7 +128,7 @@ func (self *Client) isState(s string) bool {
 }
 
 func (self *Client) changeState(s string) {
-	if s != State_CLOSE && s != State_TCP_READY && s !=	State_SYN_RCVD && s != State_ESTABLISHED {
+	if s != State_CLOSED && s != State_TCP_READY && s !=	State_SYN_RCVD && s != State_ESTABLISHED {
 		util.LogError("error change addr:%s client id:%s old:%s new:%s", self.remoteaddr, self.client_id, self.state, s)
 	} else {
 		old := self.state
