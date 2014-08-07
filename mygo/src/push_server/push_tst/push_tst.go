@@ -410,7 +410,7 @@ func tstHeart() {
 
 
 // 业务数据包发送
-func tstBussinessSend(ackDelay int) {
+func tstBussinessSend(ackDelay int, pushTimes int) {
 	tstfun := "tstBussinessSend"
 	util.LogInfo("<<<<<<%s TEST", tstfun)
 
@@ -445,7 +445,7 @@ func tstBussinessSend(ackDelay int) {
 	defer conn.Close()
 
 
-	go tstErrConn(conn, tstfun, sb, 10, func (pb *pushproto.Talk) {
+	go tstErrConn(conn, tstfun, sb, 1000, func (pb *pushproto.Talk) {
 		pb_type := pb.GetType()
 		if first_conn_read == 0 {
 			if pb_type == pushproto.Talk_SYNACK {
@@ -459,9 +459,10 @@ func tstBussinessSend(ackDelay int) {
 		} else {
 			first_conn_read += 1
 			if pb_type == pushproto.Talk_BUSSINESS {
-				util.LogInfo(">>>>>>%s Recv PASS", tstfun)
+				util.LogInfo(">>>>>>%s Recv PASS readtimes:%d", tstfun, first_conn_read)
 
-				if ackDelay+1 == first_conn_read {
+				//if ackDelay+1 == first_conn_read {
+				if true {
 					ack := &pushproto.Talk{
 						Type: pushproto.Talk_ACK.Enum(),
 						Ackmsgid: proto.Uint64(pb.GetMsgid()),
@@ -516,26 +517,29 @@ func tstBussinessSend(ackDelay int) {
 	url := fmt.Sprintf("http://localhost:9091/push/%s/0/1", clientid)
 
 
-    reqest, _ := http.NewRequest("POST", url, bytes.NewReader(bd))
 
-    reqest.Header.Set("Connection","Keep-Alive")
+	for pi := 0; pi < pushTimes; pi++ {
+		reqest, _ := http.NewRequest("POST", url, bytes.NewReader(bd))
 
-    response,_ := client.Do(reqest)
-    if response.StatusCode == 200 {
-        body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			util.LogError("%s Push return ERROR %s", tstfun, err)
+		reqest.Header.Set("Connection","Keep-Alive")
+
+		response,_ := client.Do(reqest)
+		if response.StatusCode == 200 {
+			body, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				util.LogError("%s Push return ERROR %s", tstfun, err)
+				return
+			}
+
+			util.LogInfo("%s Push return %s times:%d", tstfun, body, pi)
+
+		} else {
+			util.LogError("%s Push ERROR", tstfun)
 			return
 		}
 
-		util.LogInfo("%s Push return %s", tstfun, body)
-
-    } else {
-		util.LogError("%s Push ERROR", tstfun)
-		return
 	}
-
-	time.Sleep(time.Second * time.Duration(1 * ackDelay))
+	time.Sleep(time.Second * time.Duration(10 * (ackDelay+1)))
 
 
 }
@@ -572,7 +576,8 @@ func main() {
 	tstSyn()
 	tstDupClient()
 	//time.Sleep(1000 * 1000 * 1000 * 1)
-	tstBussinessSend(5)
+	tstBussinessSend(1, 10)
+	tstBussinessSend(1, 10)
 	//  tst pad err
 	//conn := connect()
 	//pakSyn(conn)

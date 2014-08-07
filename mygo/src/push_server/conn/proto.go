@@ -125,6 +125,7 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 	p := util.Packdata(spb)
 	self.sendBussRetry(msgid, p)
 
+	util.LogInfo("client:%s send msgid:%d", self, msgid)
 	self.Send(p)
 
 }

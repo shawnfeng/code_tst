@@ -96,13 +96,13 @@ func (self *Client) Close() {
 		}
 		self.changeState(State_CLOSED)
 	}
-
+/*
     for _, v := range self.bussmsg {
 		close(v)
 	}
 
 	self.bussmsg = make(map[uint64] chan bool)
-
+*/
 }
 
 
