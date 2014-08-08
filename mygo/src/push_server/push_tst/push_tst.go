@@ -410,7 +410,7 @@ func tstHeart() {
 
 
 // 业务数据包发送
-func tstBussinessSend(ackDelay int, pushTimes int) {
+func tstBussinessSend(ackDelay int) {
 	tstfun := "tstBussinessSend"
 	util.LogInfo("<<<<<<%s TEST", tstfun)
 
@@ -461,8 +461,7 @@ func tstBussinessSend(ackDelay int, pushTimes int) {
 			if pb_type == pushproto.Talk_BUSSINESS {
 				util.LogInfo(">>>>>>%s Recv PASS readtimes:%d", tstfun, first_conn_read)
 
-				//if ackDelay+1 == first_conn_read {
-				if true {
+				if ackDelay+1 == first_conn_read {
 					ack := &pushproto.Talk{
 						Type: pushproto.Talk_ACK.Enum(),
 						Ackmsgid: proto.Uint64(pb.GetMsgid()),
@@ -518,28 +517,29 @@ func tstBussinessSend(ackDelay int, pushTimes int) {
 
 
 
-	for pi := 0; pi < pushTimes; pi++ {
-		reqest, _ := http.NewRequest("POST", url, bytes.NewReader(bd))
 
-		reqest.Header.Set("Connection","Keep-Alive")
+	reqest, _ := http.NewRequest("POST", url, bytes.NewReader(bd))
 
-		response,_ := client.Do(reqest)
-		if response.StatusCode == 200 {
-			body, err := ioutil.ReadAll(response.Body)
-			if err != nil {
-				util.LogError("%s Push return ERROR %s", tstfun, err)
-				return
-			}
+	reqest.Header.Set("Connection","Keep-Alive")
 
-			util.LogInfo("%s Push return %s times:%d", tstfun, body, pi)
-
-		} else {
-			util.LogError("%s Push ERROR", tstfun)
+	response,_ := client.Do(reqest)
+	if response.StatusCode == 200 {
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			util.LogError("%s Push return ERROR %s", tstfun, err)
 			return
 		}
 
+		util.LogInfo("%s Push return %s", tstfun, body)
+
+	} else {
+		util.LogError("%s Push ERROR", tstfun)
+		return
 	}
-	time.Sleep(time.Second * time.Duration(10 * (ackDelay+1)))
+
+
+	//time.Sleep(time.Second * time.Duration(10 * (ackDelay+1)))
+	time.Sleep(time.Second * time.Duration(3))
 
 
 }
@@ -573,15 +573,17 @@ func main() {
 
 	tstEcho()
 	tstHeart()
+
 	tstSyn()
+
 	tstDupClient()
+
 	//time.Sleep(1000 * 1000 * 1000 * 1)
-	tstBussinessSend(1, 10)
-	tstBussinessSend(1, 10)
-	//  tst pad err
-	//conn := connect()
-	//pakSyn(conn)
-	//pakSyn(conn)
+
+	tstBussinessSend(3)
+	//tstBussinessSend(1, 10)
+
+
 	var input string
 	fmt.Scanln(&input)
 	fmt.Println("done")
