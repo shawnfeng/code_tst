@@ -23,6 +23,8 @@ type RestReturn struct {
 	// must Cap, so that can get by json Marshal
 	Code int  `json:"code,"`
 	Err string `json:"err,omitempty"`
+	Msgid uint64 `json:"msgid,omitempty"`
+	Link string `json:"link,omitempty"`
 }
 
 
@@ -123,9 +125,9 @@ func push(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	connman.Send(clientid, int32(ziptype), int32(datatype), data)
-
-	js, _ := json.Marshal(&RestReturn{Code: 0})
+	msgid, link := connman.Send(clientid, int32(ziptype), int32(datatype), data)
+	util.LogDebug("%s msgid:%d link:%s", fun, msgid, link)
+	js, _ := json.Marshal(&RestReturn{Code: 0, Msgid: msgid, Link: link})
 	fmt.Fprintf(w, "%s", js)
 
 

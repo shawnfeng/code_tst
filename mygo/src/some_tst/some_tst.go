@@ -214,6 +214,7 @@ func main() {
 	//map_clear()
 
 	//chan_read_close()
-	chan_send_noblock2()
+	chan_send_noblock()
+	//chan_send_noblock2()
 }
 

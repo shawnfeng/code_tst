@@ -118,13 +118,13 @@ func (self *Client) sendBussRetry(msgid uint64, pb []byte) {
 
 }
 
-func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
+func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) (uint64, string) {
 	fun := "Client.SendBussiness"
 
 	msgid, err := self.manager.Msgid()
 	if err != nil {
 		util.LogError("%s get msgid error:%s", fun, err)
-		return
+		return 0, self.remoteaddr
 	}
 
 
@@ -139,7 +139,7 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 	spb, err := proto.Marshal(buss)
 	if err != nil {
 		util.LogError("%s marshaling error: ", fun, err)
-		return
+		return 0, self.remoteaddr
 	}
 
 	p := util.Packdata(spb)
@@ -148,6 +148,8 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) {
 	util.LogInfo("%s client:%s send msgid:%d", fun, self, msgid)
 	self.Send(p)
 
+
+	return msgid, self.remoteaddr
 }
 
 

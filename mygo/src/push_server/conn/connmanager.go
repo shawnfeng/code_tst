@@ -64,13 +64,14 @@ func (self *ConnectionManager) delClient(client_id string, addr string) {
 
 }
 
-func (self *ConnectionManager) Send(client_id string, ziptype int32, datatype int32, data []byte) {
+func (self *ConnectionManager) Send(client_id string, ziptype int32, datatype int32, data []byte) (uint64, string){
 	fun := "ConnectionManager.Send"
 	if v, ok := self.clients[client_id]; ok {
-		v.SendBussiness(ziptype, datatype, data)
+		return v.SendBussiness(ziptype, datatype, data)
 
 	} else {
 		util.LogWarn("%s client_id %s not fond", fun, client_id)
+		return 0, ""
 	}
 
 
