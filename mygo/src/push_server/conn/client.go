@@ -23,7 +23,7 @@ import (
 // my lib
 import (
 	"push_server/pb"
-	"push_server/util"
+	"push_server/slog"
 
 )
 
@@ -112,7 +112,7 @@ func (self *Client) chgCLOSED2TCP_READY(c net.Conn) {
 	defer self.state_lock.Unlock()
 
 	if self.state == State_TCP_READY {
-		util.LogWarn("%s client:%s is already:%s", fun, self, State_TCP_READY)
+		slog.Warnf("%s client:%s is already:%s", fun, self, State_TCP_READY)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (self *Client) chgCLOSED2TCP_READY(c net.Conn) {
 	old_state := self.state
 	self.state = State_TCP_READY
 
-	util.LogInfo("%s change client:%s %s:%s", fun, self, old_state, self.state)
+	slog.Infof("%s change client:%s %s:%s", fun, self, old_state, self.state)
 
 	go self.Recv()
 }
@@ -138,7 +138,7 @@ func (self *Client) chgESTABLISHED(pb *pushproto.Talk) {
 		// 已经建立了连接，当前状态是ESTABLISHED，可能是客户端没有收到synack
 		// 重新回执synack
 
-		util.LogWarn("%s client:%s is already:%s", fun, self, State_ESTABLISHED)
+		slog.Warnf("%s client:%s is already:%s", fun, self, State_ESTABLISHED)
 		self.sendSYNACK(self.client_id)
 		return
 	}
@@ -155,7 +155,7 @@ func (self *Client) chgESTABLISHED(pb *pushproto.Talk) {
 	old_state := self.state
 	self.state = State_ESTABLISHED
 
-	util.LogInfo("%s change client:%s %s:%s", fun, self, old_state, self.state)
+	slog.Infof("%s change client:%s %s:%s", fun, self, old_state, self.state)
 
 	self.sendSYNACK(self.client_id)
 	self.manager.addClient(self)
@@ -180,7 +180,7 @@ func (self *Client) dochgCLOSED(isRmManager bool) {
 	defer self.state_lock.Unlock()
 
 	if self.state == State_CLOSED {
-		util.LogWarn("%s client:%s is already:%s", fun, self, State_CLOSED)
+		slog.Warnf("%s client:%s is already:%s", fun, self, State_CLOSED)
 		return
 	}
 
@@ -190,21 +190,21 @@ func (self *Client) dochgCLOSED(isRmManager bool) {
 
 
 	if err := self.conn.Close(); err != nil {
-		util.LogWarn("%s client:%s Close net.Conn err: %s", fun, self, err)
+		slog.Warnf("%s client:%s Close net.Conn err: %s", fun, self, err)
 	}
 
     for k, v := range self.bussmsg {
 		select {
 		case v <-false:
 		default:
-			util.LogWarn("%s client:%s msgid:%d no wait notify", fun, self, k)
+			slog.Warnf("%s client:%s msgid:%d no wait notify", fun, self, k)
 		}
 	}
 
 	old_state := self.state
 	self.state = State_CLOSED
 
-	util.LogInfo("%s change client:%s %s:%s", fun, self, old_state, self.state)
+	slog.Infof("%s change client:%s %s:%s", fun, self, old_state, self.state)
 
 }
 
@@ -252,16 +252,16 @@ func (self *Client) SendClose(s []byte) {
 // goroutine
 func (self *Client) sendData(s []byte, isclose bool) {
 	fun := "Client.sendData"
-	//util.LogDebug("sendData %s %d", s, isclose)
+	//slog.Debug("sendData %s %d", s, isclose)
 	self.send_lock.Lock()
 	defer self.send_lock.Unlock()
 
 	self.conn.SetWriteDeadline(time.Now().Add(time.Duration(5) * time.Second))
 	a, err := self.conn.Write(s)
-	util.LogInfo("%s client:%s Send Write rv %d", fun, self, a)
+	slog.Infof("%s client:%s Send Write rv %d", fun, self, a)
 
 	if err != nil {
-		util.LogWarn("%s client:%s write error:%s ", fun, self, err)
+		slog.Warnf("%s client:%s write error:%s ", fun, self, err)
 		self.chgCLOSED()
 		return
 	}
@@ -287,7 +287,7 @@ func (self *Client) Recv() {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(60 * 10) * time.Second))
 		bytesRead, error := conn.Read(buffer)
 		if error != nil {
-			util.LogInfo("%s client:%s conn error: %s", fun, self, error)
+			slog.Infof("%s client:%s conn error: %s", fun, self, error)
 			return
 		}
 
@@ -297,22 +297,22 @@ func (self *Client) Recv() {
 		bufLen += uint64(bytesRead)
 
 
-	    util.LogInfo("%s client:%s Recv: %d %d %d", fun, self, bytesRead, packBuff, bufLen)
+	    slog.Infof("%s client:%s Recv: %d %d %d", fun, self, bytesRead, packBuff, bufLen)
 
 		for {
 			if (bufLen > 0) {
 			    pacLen, sz := binary.Uvarint(packBuff[:bufLen])
 				if sz < 0 {
-					util.LogWarn("%s client:%s package head error:%s", fun, self, packBuff[:bufLen])
+					slog.Warnf("%s client:%s package head error:%s", fun, self, packBuff[:bufLen])
 					return
 				} else if sz == 0 {
 				    break
 				}
 
-				util.LogDebug("%s pacLen %d", fun, pacLen)
+				slog.Debugf("%s pacLen %d", fun, pacLen)
 				// must < 5K
 				if pacLen > 1024 * 5 {
-					util.LogWarn("%s client:%s package too long error:%s", fun, self, packBuff[:bufLen])
+					slog.Warnf("%s client:%s package too long error:%s", fun, self, packBuff[:bufLen])
 					errmsg = "package too long"
 					return
 				} else if pacLen == 0 {
@@ -324,7 +324,7 @@ func (self *Client) Recv() {
 				if bufLen >= apacLen {
 				    pad := packBuff[apacLen-1]
 					if pad != 0 {
-						util.LogWarn("%s client:%s package pad error:%s", fun, self, packBuff[:bufLen])
+						slog.Warnf("%s client:%s package pad error:%s", fun, self, packBuff[:bufLen])
 						errmsg = "package pad error"
 					    return
 					}

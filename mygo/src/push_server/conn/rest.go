@@ -14,8 +14,7 @@ import (
 
 // my lib
 import (
-//	"push_server/pb"
-	"push_server/util"
+	"push_server/slog"
 
 )
 
@@ -89,9 +88,9 @@ func push(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.LogInfo("%s %s", fun, r.URL.Path)
+	slog.Infof("%s %s", fun, r.URL.Path)
 	path := strings.Split(r.URL.Path, "/")
-	//util.LogInfo("%q", path)
+	//slog.Info("%q", path)
 
 	if len(path) != 5 {
 		writeRestErr(w, "uri err")
@@ -126,7 +125,7 @@ func push(w http.ResponseWriter, r *http.Request) {
 
 
 	msgid, link := connman.Send(clientid, int32(ziptype), int32(datatype), data)
-	util.LogDebug("%s msgid:%d link:%s", fun, msgid, link)
+	slog.Debugf("%s msgid:%d link:%s", fun, msgid, link)
 	js, _ := json.Marshal(&RestReturn{Code: 0, Msgid: msgid, Link: link})
 	fmt.Fprintf(w, "%s", js)
 
@@ -143,7 +142,7 @@ func StartHttp(cm *ConnectionManager, httpport string) {
 
 		err := http.ListenAndServe(httpport, nil) //设置监听的端口
 		if err != nil {
-			util.LogFatal("StartHttp ListenAndServe: %s", err)
+			slog.Fatalf("StartHttp ListenAndServe: %s", err)
 			panic("StartHttp ListenAndServe")
 		}
 	}()

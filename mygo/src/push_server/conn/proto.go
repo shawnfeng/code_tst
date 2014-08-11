@@ -18,6 +18,7 @@ import (
 import (
 	"push_server/pb"
 	"push_server/util"
+	"push_server/slog"
 
 )
 
@@ -32,13 +33,13 @@ func (self *Client) deferErrNotifyCLOSED(errmsg *string) {
 
 func (self *Client) errNotifyCLOSED(errmsg string) {
 	fun := "Client.errNotifyCLOSED"
-	//util.LogDebug("errmsg:%s", errmsg)
+	//slog.Debug("errmsg:%s", errmsg)
 	errpb := &pushproto.Talk{
 		Type: pushproto.Talk_ERR.Enum(),
 		Extdata: []byte(errmsg),
 	}
 
-	util.LogDebug("%s errmsg:%s", fun, errpb)
+	slog.Debugf("%s errmsg:%s", fun, errpb)
 	data, _ := proto.Marshal(errpb)
 	self.SendClose(util.Packdata(data))
 
@@ -85,19 +86,19 @@ func (self *Client) sendBussRetry(msgid uint64, pb []byte) {
 			select {
 			case v := <-ack_notify:
 				if v {
-					util.LogInfo("%s client:%s recv ack msgid:%d", fun, self, msgid)
+					slog.Infof("%s client:%s recv ack msgid:%d", fun, self, msgid)
 				} else {
-					util.LogInfo("%s client:%s close not recv ack msgid:%d", fun, self, msgid)
+					slog.Infof("%s client:%s close not recv ack msgid:%d", fun, self, msgid)
 				}
 				return
 
 			case <-time.After(time.Second * time.Duration(retry_intv)):
 				if i <= retry_time {
-					util.LogInfo("%s client:%s retry msgid:%d times:%d", fun, self, msgid, i)
+					slog.Infof("%s client:%s retry msgid:%d times:%d", fun, self, msgid, i)
 					self.Send(pb)
 				} else {
 					// 最后一次发送已经超时
-					util.LogInfo("%s client:%s send timeout msgid:%d", fun, self, msgid)
+					slog.Infof("%s client:%s send timeout msgid:%d", fun, self, msgid)
 					// 断开连接
 					self.chgCLOSED()
 					return
@@ -123,7 +124,7 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) (u
 
 	msgid, err := self.manager.Msgid()
 	if err != nil {
-		util.LogError("%s get msgid error:%s", fun, err)
+		slog.Errorf("%s get msgid error:%s", fun, err)
 		return 0, self.remoteaddr
 	}
 
@@ -138,14 +139,14 @@ func (self *Client) SendBussiness(ziptype int32, datatype int32, data []byte) (u
 
 	spb, err := proto.Marshal(buss)
 	if err != nil {
-		util.LogError("%s marshaling error: ", fun, err)
+		slog.Errorf("%s marshaling error: ", fun, err)
 		return 0, self.remoteaddr
 	}
 
 	p := util.Packdata(spb)
 	self.sendBussRetry(msgid, p)
 
-	util.LogInfo("%s client:%s send msgid:%d", fun, self, msgid)
+	slog.Infof("%s client:%s send msgid:%d", fun, self, msgid)
 	self.Send(p)
 
 
@@ -163,12 +164,12 @@ func (self *Client) recvACK(pb *pushproto.Talk) {
 	if c != nil {
 		select {
 		case c <-true:
-			util.LogDebug("%s client:%s msgid:%d notify", fun, self, msgid)
+			slog.Debugf("%s client:%s msgid:%d notify", fun, self, msgid)
 		default:
-			util.LogWarn("%s client:%s msgid:%d no wait notify", fun, self, msgid)
+			slog.Warnf("%s client:%s msgid:%d no wait notify", fun, self, msgid)
 		}
 	} else {
-		util.LogWarn("%s client:%s msgid:%d not found", fun, self, msgid)
+		slog.Warnf("%s client:%s msgid:%d not found", fun, self, msgid)
 	}
 
 }
@@ -184,12 +185,12 @@ func (self *Client) proto(data []byte) {
 	pb := &pushproto.Talk{}
 	err := proto.Unmarshal(data, pb)
 	if err != nil {
-		util.LogWarn("%s unmarshaling error: %s", fun, err)
+		slog.Warnf("%s unmarshaling error: %s", fun, err)
 		self.errNotifyCLOSED("package unmarshaling error")
 		return
 	}
 
-	util.LogDebug("%s recv proto: %s", fun, pb)
+	slog.Debugf("%s recv proto: %s", fun, pb)
 	pb_type := pb.GetType()
 
 

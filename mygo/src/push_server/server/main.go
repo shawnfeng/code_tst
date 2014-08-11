@@ -5,11 +5,35 @@ import (
 //	"log"
 
 	"push_server/conn"
+	"encoding/json"
+	"os"
+//	"io/ioutil"
+)
+
+import (
+	"push_server/slog"
 
 )
 
 
+type config struct {
+	ServId int32
+
+	HttpServ string
+	ConnServ string
+
+}
+
+
 func main() {
+	cfg := config{ServId: 0, HttpServ: ":9091", ConnServ: ":9989"}
+
+	js, _ := json.Marshal(&cfg)
+
+    slog.Init(os.Stdout)
+
+	slog.Infof("%s", js)
+
 	conn_man := connection.NewConnectionManager()
 
 	httpport := ":9091"
