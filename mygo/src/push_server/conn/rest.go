@@ -4,7 +4,7 @@ import (
     "fmt"
     "net/http"
     "strings"
-    "log"
+//    "log"
 	"io/ioutil"
 	"encoding/json"
 	"strconv"
@@ -80,13 +80,14 @@ func writeRestErr(w http.ResponseWriter, err string) {
 // Uri: /push/CLIENT_ID/ZIPTYPE/DATATYPE
 // Data: push data
 func push(w http.ResponseWriter, r *http.Request) {
+	fun := "rest.push"
 	//debug_show_request(r)
 	if r.Method != "POST" {
 		writeRestErr(w, "method err")
 		return
 	}
 
-	util.LogInfo(r.URL.Path)
+	util.LogInfo("%s %s", fun, r.URL.Path)
 	path := strings.Split(r.URL.Path, "/")
 	//util.LogInfo("%q", path)
 
@@ -140,7 +141,8 @@ func StartHttp(cm *ConnectionManager, httpport string) {
 
 		err := http.ListenAndServe(httpport, nil) //设置监听的端口
 		if err != nil {
-			log.Fatal("ListenAndServe: ", err)
+			util.LogFatal("StartHttp ListenAndServe: %s", err)
+			panic("StartHttp ListenAndServe")
 		}
 	}()
 }
