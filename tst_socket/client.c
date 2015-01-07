@@ -74,21 +74,21 @@ int set_buff_size(int fd)
   get_buff_size(fd);
   printf("====before set====\n");
 
-  snd_size = 1024;
+  snd_size = 11000;
   optlen = sizeof(snd_size);
   err = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &snd_size, optlen);
   if (err < 0) {
     printf("set send buff err\n"); 
   } 
 
-
-  rcv_size = 1024;
+  /*
+  rcv_size = 11000;
   optlen = sizeof(rcv_size); 
   err = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (char *)&rcv_size, optlen);
   if (err<0) {
     printf("set recv buff err\n");
   }
-
+  */
 
   printf("====after set====\n");
   get_buff_size(fd);
@@ -126,11 +126,12 @@ int main(int argc, char *argv[])
   //int flags = fcntl(client_sockfd, F_GETFL, 0); 
   //fcntl(client_sockfd, F_SETFL, flags & ~O_NONBLOCK);
 
-  get_buff_size(client_sockfd);
+  set_buff_size(client_sockfd);
+
+  sleep(2);
 
 
-
-  char sbuf[] = "HelloWorld";
+  char sbuf[] = "HelloWorldHelloWorldHelloWorldHelloWorldHelloWorldHelloWorldHelloWorldHelloWorldHelloWorldHelloWorld";
 
   printf("one sz:%lu\n", sizeof(sbuf)-1);
 
@@ -140,6 +141,7 @@ int main(int argc, char *argv[])
     int sz = check_write(client_sockfd, sbuf, sizeof(sbuf)-1);
     cn_all += sz;
     printf("send over fd:%d sz:%d all:%d\n", client_sockfd, sz, cn_all);
+    sleep(1);
   }
 
 
@@ -149,3 +151,4 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+// sudo tcpdump -i lo port 8599
